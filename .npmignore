@@ -6,6 +6,5 @@ test.ts
 temp.html
 test.html
 .vscode/
-src/
 tslint.json
 typedoc.json

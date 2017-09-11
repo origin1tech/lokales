@@ -6,6 +6,7 @@ const should = chai.should;
 const assert = chai.assert;
 
 import { Lokales } from './';
+import { LokalesUpdateHandler } from './interfaces';
 
 const lokales = new Lokales();
 const __ = lokales.__.bind(lokales);
@@ -47,5 +48,6 @@ describe('Lokales', () => {
   it('should get the current locale.', () => {
     assert.equal(lokales.options.locale, 'es');
   });
+
 
 });

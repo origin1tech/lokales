@@ -177,7 +177,7 @@ var Lokales = /** @class */ (function () {
      * @param directory the directory for locales.
      * @param locale the active locale.
      */
-    Lokales.prototype.readLocale = function (directory, locale) {
+    Lokales.prototype.readLocale = function (locale, directory) {
         directory = directory || this.options.directory;
         locale = locale || this.options.locale;
         var path = this.resolveFile(directory, locale);
@@ -203,8 +203,8 @@ var Lokales = /** @class */ (function () {
      *
      * @param state the current state of options object.
      */
-    Lokales.prototype.writeQueue = function (update, state) {
-        this.queue.push([update, state]);
+    Lokales.prototype.writeQueue = function (updated, state) {
+        this.queue.push([updated, state]);
         if (this.queue.length === 1)
             this.processQueue();
     };
@@ -215,7 +215,7 @@ var Lokales = /** @class */ (function () {
     Lokales.prototype.processQueue = function () {
         var _this = this;
         var item = this.queue[0];
-        var update = item[0];
+        var updated = item[0];
         var opts = item[1];
         var path = this.resolveFile(opts.directory, opts.locale, opts.localeFallback);
         var serialized = JSON.stringify(this.cache[opts.locale], null, 2);
@@ -224,12 +224,31 @@ var Lokales = /** @class */ (function () {
         fs_1.writeFile(path, serialized, 'utf-8', function (err) {
             if (err)
                 _this.error(err); // don't exit continue queue but log error.
-            if (opts.onUpdate)
-                opts.onUpdate(update, opts, _this);
+            if (opts.onUpdate) {
+                opts.onUpdate(err, updated, _this);
+            }
             _this.queue.shift();
             if (_this.queue.length > 0)
                 _this.processQueue();
         });
+    };
+    /**
+     * Template Literal
+     * : Allows for localizing __`some localized string ${value}`;
+     *
+     * @param strings array of template literal strings.
+     * @param values template literal args.
+     */
+    Lokales.prototype.templateLiteral = function (strings, values) {
+        var str = '';
+        strings.forEach(function (el, i) {
+            var arg = values[i];
+            str += el;
+            if (typeof arg !== 'undefined') {
+                str += '%s';
+            }
+        });
+        return this.__.apply(this, [str].concat(values));
     };
     Object.defineProperty(Lokales.prototype, "t", {
         // GETTERS //
@@ -338,22 +357,18 @@ var Lokales = /** @class */ (function () {
         return this.options[key] || null;
     };
     /**
-     * Template Literal
-     * : Allows for localizing __`some localized string ${value}`;
+     * Key Exists
+     * : Inspects cached checking if key already exists.
      *
-     * @param strings array of template literal strings.
-     * @param values template literal args.
+     * @param key the key to check if exists.
+     * @param locale the locale to inspect for key.
+     * @param directory optional directory.
      */
-    Lokales.prototype.templateLiteral = function (strings, values) {
-        var str = '';
-        strings.forEach(function (el, i) {
-            var arg = values[i];
-            str += el;
-            if (typeof arg !== 'undefined') {
-                str += '%s';
-            }
-        });
-        return this.__.apply(this, [str].concat(values));
+    Lokales.prototype.keyExists = function (key, locale, directory) {
+        locale = locale || this.options.locale;
+        if (!this.cache[locale])
+            this.cache[locale] = this.readLocale(locale, directory);
+        return this.cache[locale][key];
     };
     Lokales.prototype.__ = function (val) {
         var args = [];

@@ -1,4 +1,4 @@
-import { ILokalesOptions, ILokalesCache } from './interfaces';
+import { ILokalesOptions, ILokalesCache, LokalesOptionKeys } from './interfaces';
 export declare class Lokales {
     cache: ILokalesCache;
     queue: any[];
@@ -71,19 +71,27 @@ export declare class Lokales {
      * @param directory the directory for locales.
      * @param locale the active locale.
      */
-    private readLocale(directory?, locale?);
+    private readLocale(locale?, directory?);
     /**
      * Write Queue
      * : Adds options state to write queue for processing.
      *
      * @param state the current state of options object.
      */
-    private writeQueue(update, state);
+    private writeQueue(updated, state);
     /**
      * Process Queue
      * : Processes queued jobs saving to file.
      */
     private processQueue();
+    /**
+     * Template Literal
+     * : Allows for localizing __`some localized string ${value}`;
+     *
+     * @param strings array of template literal strings.
+     * @param values template literal args.
+     */
+    private templateLiteral(strings, values);
     readonly t: (val: string, ...args: any[]) => any;
     readonly tn: (singular: string, plural: string, count: number, ...args: any[]) => string;
     /**
@@ -103,7 +111,7 @@ export declare class Lokales {
      * @param key the key or options object to set.
      * @param val the value to set when key is not an object.
      */
-    setOption(key: string, val: any): this;
+    setOption(key: LokalesOptionKeys | ILokalesOptions, val: any): this;
     /**
      * Get Option
      * : Gets an option value by key.
@@ -112,13 +120,14 @@ export declare class Lokales {
      */
     getOption(key: string): any;
     /**
-     * Template Literal
-     * : Allows for localizing __`some localized string ${value}`;
+     * Key Exists
+     * : Inspects cached checking if key already exists.
      *
-     * @param strings array of template literal strings.
-     * @param values template literal args.
+     * @param key the key to check if exists.
+     * @param locale the locale to inspect for key.
+     * @param directory optional directory.
      */
-    templateLiteral(strings: string[], values: any[]): any;
+    keyExists(key: string, locale?: string, directory?: string): any;
     __(val: string, ...args: any[]): any;
     __n(singular: string, plural: string, count: number, ...args: any[]): string;
 }

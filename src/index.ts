@@ -1,5 +1,5 @@
 
-import { IMap, LokalesErrorHandler, LokalesUpdateHandler, ILokalesOptions, ILokalesCache, ILokalesItem, ILokalesUpdateResult } from './interfaces';
+import { IMap, LokalesErrorHandler, LokalesUpdateHandler, ILokalesOptions, ILokalesCache, ILokalesItem, ILokalesUpdated, LokalesOptionKeys } from './interfaces';
 import { parse, resolve } from 'path';
 import { readFileSync, writeFile, stat, statSync, Stats } from 'fs';
 import { format } from 'util';
@@ -133,6 +133,7 @@ export class Lokales {
     return dest;
   }
 
+
   // FILE SYSTEM //
 
   /**
@@ -197,7 +198,7 @@ export class Lokales {
    * @param directory the directory for locales.
    * @param locale the active locale.
    */
-  private readLocale(directory?: string, locale?: string) {
+  private readLocale(locale?: string, directory?: string) {
     directory = directory || this.options.directory;
     locale = locale || this.options.locale;
     const path = this.resolveFile(directory, locale);
@@ -225,8 +226,8 @@ export class Lokales {
    *
    * @param state the current state of options object.
    */
-  private writeQueue(update: ILokalesUpdateResult, state: ILokalesOptions) {
-    this.queue.push([update, state]);
+  private writeQueue(updated: ILokalesUpdated, state: ILokalesOptions) {
+    this.queue.push([updated, state]);
     if (this.queue.length === 1)
       this.processQueue();
   }
@@ -238,7 +239,7 @@ export class Lokales {
   private processQueue() {
 
     const item = this.queue[0];
-    const update = item[0];
+    const updated = item[0];
     const opts: ILokalesOptions = item[1];
     const path = this.resolveFile(opts.directory, opts.locale, opts.localeFallback);
     const serialized = JSON.stringify(this.cache[opts.locale], null, 2);
@@ -249,14 +250,35 @@ export class Lokales {
     writeFile(path, serialized, 'utf-8', (err) => {
       if (err)
         this.error(err); // don't exit continue queue but log error.
-      if (opts.onUpdate)
-        opts.onUpdate(update, opts, this);
+      if (opts.onUpdate) {
+        opts.onUpdate(err, updated, this);
+      }
       this.queue.shift();
       if (this.queue.length > 0)
         this.processQueue();
     });
 
   }
+
+  /**
+   * Template Literal
+   * : Allows for localizing __`some localized string ${value}`;
+   *
+   * @param strings array of template literal strings.
+   * @param values template literal args.
+   */
+  private templateLiteral(strings: string[], values: any[]) {
+    let str = '';
+    strings.forEach((el, i) => {
+      const arg = values[i];
+      str += el;
+      if (typeof arg !== 'undefined') {
+        str += '%s';
+      }
+    });
+    return this.__(str, ...values);
+  }
+
 
   // GETTERS //
 
@@ -351,14 +373,14 @@ export class Lokales {
    * @param key the key or options object to set.
    * @param val the value to set when key is not an object.
    */
-  setOption(key: string, val: any) {
+  setOption(key: LokalesOptionKeys | ILokalesOptions, val: any) {
     const isObj = this.isPlainObject(key);
     let obj: any = key;
     if (!isObj && !this.isValue(val))
       return;
     if (!isObj) {
       obj = {};
-      obj[key] = val;
+      obj[<string>key] = val;
     }
     this.extend(this.options, obj);
     return this;
@@ -375,22 +397,22 @@ export class Lokales {
   }
 
   /**
-   * Template Literal
-   * : Allows for localizing __`some localized string ${value}`;
+   * Key Exists
+   * : Inspects cached checking if key already exists.
    *
-   * @param strings array of template literal strings.
-   * @param values template literal args.
+   * @param key the key to check if exists.
+   * @param locale the locale to inspect for key.
+   * @param directory optional directory.
    */
-  templateLiteral(strings: string[], values: any[]) {
-    let str = '';
-    strings.forEach((el, i) => {
-      const arg = values[i];
-      str += el;
-      if (typeof arg !== 'undefined') {
-        str += '%s';
-      }
-    });
-    return this.__(str, ...values);
+  keyExists(key: string, locale?: string, directory?: string) {
+
+    locale = locale || this.options.locale;
+
+    if (!this.cache[locale])  // ensure loaded locale.
+      this.cache[locale] = this.readLocale(locale, directory);
+
+    return this.cache[locale][key];
+
   }
 
   __(val: string, ...args: any[]) {
