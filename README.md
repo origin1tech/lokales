@@ -32,7 +32,7 @@ lokales.__('Hello my name is %s.', 'Joe');
 Plural example passing singular key, plural key, count and format values.
 
 ```ts
-lokales.__('I have %d cat', 'I have %d cats', 2, 'Joe');
+lokales.__n('I have %d cat', 'I have %d cats', 2, 'Joe');
 // Result > I have 2 cats.
 ```
 
