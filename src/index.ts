@@ -5,6 +5,8 @@ import { readFileSync, writeFile, stat, statSync, Stats, createReadStream, creat
 import { format } from 'util';
 import { EOL } from 'os';
 
+export * from './interfaces';
+
 const DEFAULTS = {
   directory: './locales',   // directory where locales are stored.
   locale: 'en',             // the active locale.
