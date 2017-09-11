@@ -4,7 +4,7 @@ const argv = stiks.argv;
 const colurs = stiks.colurs.get();
 const chek = stiks.chek;
 const exec = stiks.exec;
-const pkg = stiks.pkg();
+let pkg = stiks.pkg();
 const build = pkg && pkg.build;
 
 // Ensure build info.
@@ -68,6 +68,8 @@ const actions = {
 
   bump: () => {
     stiks.bump();
+    pkg = stiks.pkg();
+    log.info(`successfully bumped package to version ${pkg.version}.`)
     return actions;
   },
 
@@ -96,6 +98,7 @@ const actions = {
   release: () => {
     actions.build()
       .docs()
+      .bump()
       .commit()
       .publish();
     return actions;
