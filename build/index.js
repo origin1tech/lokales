@@ -96,8 +96,8 @@ const actions = {
   release: () => {
     actions.build()
       .docs()
-      .commit();
-    // .publish();
+      .commit()
+      .publish();
     return actions;
   },
 
