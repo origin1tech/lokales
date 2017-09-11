@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Live Test",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceRoot}/node_modules/ts-node/dist/_bin.js",
+      "args": [
+        "-P",
+        "${workspaceRoot}/src/tsconfig.spec.json",
+        "${workspaceRoot}/src/test.spec.ts"
+      ],
+      "runtimeArgs": [],
+      "cwd": "${workspaceRoot}",
+      "protocol": "inspector"
+    }
+  ]
+}
