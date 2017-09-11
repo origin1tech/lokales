@@ -459,7 +459,7 @@ export class Lokales {
     return this.localize(val, null, null, ...args);
   }
 
-  __n(singular: string, plural: string, count: number, ...args: any[]) {
+  __n(singular: string, plural: string, count?: number, ...args: any[]) {
     return this.localize(singular, plural, count, ...args);
   }
 

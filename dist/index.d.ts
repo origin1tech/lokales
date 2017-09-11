@@ -93,7 +93,7 @@ export declare class Lokales {
      */
     private templateLiteral(strings, values);
     readonly t: (val: string, ...args: any[]) => any;
-    readonly tn: (singular: string, plural: string, count: number, ...args: any[]) => string;
+    readonly tn: (singular: string, plural: string, count?: number, ...args: any[]) => string;
     /**
      * Localize
      * : Common method for localizing strings.
@@ -141,5 +141,5 @@ export declare class Lokales {
      */
     purge(): void;
     __(val: string, ...args: any[]): any;
-    __n(singular: string, plural: string, count: number, ...args: any[]): string;
+    __n(singular: string, plural: string, count?: number, ...args: any[]): string;
 }
