@@ -9,9 +9,8 @@ export declare class Lokales {
      * : Handles module errors.
      *
      * @param err the error to be handled.
-     * @param exit forces Lokales to exit.
      */
-    private error(err, exit?);
+    private error(err);
     /**
      * Keys
      * : Gets keys for an object.
@@ -128,6 +127,18 @@ export declare class Lokales {
      * @param directory optional directory.
      */
     keyExists(key: string, locale?: string, directory?: string): any;
+    /**
+     * Backup
+     * : Creates backup copy of file.
+     *
+     * @param src the original source path to be backed up.
+     */
+    backup(src: string): void;
+    /**
+     * Purge
+     * : Purges any backup files in locales directory.
+     */
+    purge(): void;
     __(val: string, ...args: any[]): any;
     __n(singular: string, plural: string, count: number, ...args: any[]): string;
 }

@@ -1,16 +1,16 @@
 
 import { IMap, LokalesErrorHandler, LokalesUpdateHandler, ILokalesOptions, ILokalesCache, ILokalesItem, ILokalesUpdated, LokalesOptionKeys } from './interfaces';
-import { parse, resolve } from 'path';
-import { readFileSync, writeFile, stat, statSync, Stats } from 'fs';
+import { parse, resolve, join } from 'path';
+import { readFileSync, writeFile, stat, statSync, Stats, createReadStream, createWriteStream, readdirSync, unlinkSync } from 'fs';
 import { format } from 'util';
 import { EOL } from 'os';
-
 
 const DEFAULTS = {
   directory: './locales',   // directory where locales are stored.
   locale: 'en',             // the active locale.
   localeFallback: 'en',     // a fallback locale when active fails.
   update: true,             // when true allows updates to locale file.
+  backup: true,             // when true backup copy of active locale is created.
   onUpdate: undefined,      // method on update called good for translating.
   onError: undefined        // called on write queue error.
 };
@@ -37,9 +37,8 @@ export class Lokales {
    * : Handles module errors.
    *
    * @param err the error to be handled.
-   * @param exit forces Lokales to exit.
    */
-  private error(err: string | Error, exit?: boolean) {
+  private error(err: string | Error) {
 
     const errorHandler = this.options.onError;
 
@@ -53,13 +52,10 @@ export class Lokales {
 
     if (errorHandler) {
       errorHandler(err);
-      if (exit)
-        process.exit(1);
     }
     else {
-      if (exit)
-        throw err;
-      console.log(err.message);
+      console.log();
+      throw err;
     }
 
   }
@@ -185,7 +181,7 @@ export class Lokales {
       path = resolve(directory, './', `${fallback}.json`);
     const parsed = parse(path);
     if (!this.pathExists(parsed.dir, true)) {
-      this.error(`failed to load locales path ${parsed.dir}, ensure the directory exists.`, true);
+      this.error(`failed to load locales path ${parsed.dir}, ensure the directory exists.`);
       return;
     }
     return path;
@@ -202,18 +198,21 @@ export class Lokales {
     directory = directory || this.options.directory;
     locale = locale || this.options.locale;
     const path = this.resolveFile(directory, locale);
+    if (this.options.backup) // backup a copy of the locale.
+      this.backup(path);
     let obj: any = {};
     try {
       obj = JSON.parse(readFileSync(path, 'utf-8'))
+
     }
     catch (ex) {
       if (ex instanceof SyntaxError) {
         ex.message = `locale ${locale} contains invalid syntax, ensure valid JSON.`;
-        this.error(ex, true);
+        this.error(ex);
       }
       obj = {}; // ensure object file may not exist yet.
       if (ex && !(ex && ex.code === 'ENOENT')) // ignore missing locale we'll create it.
-        this.error(ex); // report error to warn but don't exit.
+        this.error(ex);
     }
     return obj;
   }
@@ -308,8 +307,9 @@ export class Lokales {
     const supportsPlural = this.isValue(plural);
     let shouldQueue;
 
-    if (!cache[locale])  // ensure loaded locale.
+    if (!cache[locale]) { // ensure loaded locale.
       cache[locale] = this.readLocale();
+    }
 
     const existing = cache[locale][singular]; // value already exists.
 
@@ -413,6 +413,42 @@ export class Lokales {
 
     return this.cache[locale][key];
 
+  }
+
+  /**
+   * Backup
+   * : Creates backup copy of file.
+   *
+   * @param src the original source path to be backed up.
+   */
+  backup(src: string) {
+    try {
+      const parsed = parse(src);
+      const dest = join(parsed.dir, parsed.name + '.bak' + parsed.ext);
+      createReadStream(src).pipe(createWriteStream(dest));
+    }
+    catch (ex) {
+      this.error(ex);
+    }
+  }
+
+  /**
+   * Purge
+   * : Purges any backup files in locales directory.
+   */
+  purge() {
+    const stats = statSync(this.options.directory);
+    const files = readdirSync(this.options.directory, 'utf-8');
+    let ctr = 0;
+    files.forEach((f, i) => {
+      if (/bak\.json$/.test(f.toString())) {
+        unlinkSync(join(this.options.directory, f.toString()));
+        ctr++;
+      }
+    });
+    console.log();
+    console.log(`successfully purged ${ctr} file(s).`);
+    console.log();
   }
 
   __(val: string, ...args: any[]) {

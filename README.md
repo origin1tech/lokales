@@ -73,6 +73,8 @@ Simple API for plural or singular localization along with get and set for option
     <tr><td>setOption</td><td>key: LokalesOptionKeys | ILokalesOptions, val: any</td><td>Sets an option by key/value or options object.</td></tr>
     <tr><td>getOption</td><td>key: string</td><td>Gets an existing option.</td></tr>
     <tr><td>keyExists</td><td>key: string, locale?: string, directory?: string</td><td>Checks if key exists in locale.</td></tr>
+    <tr><td>backup</td><td>src: string</td><td>Backup a locale by path.</td></tr>
+    <tr><td>purge</td><td>n/a</td><td>Purges and backup files.</td></tr>
   </tbody>
 </table>
 

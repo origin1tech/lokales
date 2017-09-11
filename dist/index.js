@@ -9,6 +9,7 @@ var DEFAULTS = {
     locale: 'en',
     localeFallback: 'en',
     update: true,
+    backup: true,
     onUpdate: undefined,
     onError: undefined // called on write queue error.
 };
@@ -29,9 +30,8 @@ var Lokales = /** @class */ (function () {
      * : Handles module errors.
      *
      * @param err the error to be handled.
-     * @param exit forces Lokales to exit.
      */
-    Lokales.prototype.error = function (err, exit) {
+    Lokales.prototype.error = function (err) {
         var errorHandler = this.options.onError;
         if (!(err instanceof Error)) {
             err = new Error(err);
@@ -42,13 +42,10 @@ var Lokales = /** @class */ (function () {
         }
         if (errorHandler) {
             errorHandler(err);
-            if (exit)
-                process.exit(1);
         }
         else {
-            if (exit)
-                throw err;
-            console.log(err.message);
+            console.log();
+            throw err;
         }
     };
     /**
@@ -165,7 +162,7 @@ var Lokales = /** @class */ (function () {
             path = path_1.resolve(directory, './', fallback + ".json");
         var parsed = path_1.parse(path);
         if (!this.pathExists(parsed.dir, true)) {
-            this.error("failed to load locales path " + parsed.dir + ", ensure the directory exists.", true);
+            this.error("failed to load locales path " + parsed.dir + ", ensure the directory exists.");
             return;
         }
         return path;
@@ -181,6 +178,8 @@ var Lokales = /** @class */ (function () {
         directory = directory || this.options.directory;
         locale = locale || this.options.locale;
         var path = this.resolveFile(directory, locale);
+        if (this.options.backup)
+            this.backup(path);
         var obj = {};
         try {
             obj = JSON.parse(fs_1.readFileSync(path, 'utf-8'));
@@ -188,11 +187,11 @@ var Lokales = /** @class */ (function () {
         catch (ex) {
             if (ex instanceof SyntaxError) {
                 ex.message = "locale " + locale + " contains invalid syntax, ensure valid JSON.";
-                this.error(ex, true);
+                this.error(ex);
             }
             obj = {}; // ensure object file may not exist yet.
             if (ex && !(ex && ex.code === 'ENOENT'))
-                this.error(ex); // report error to warn but don't exit.
+                this.error(ex);
         }
         return obj;
     };
@@ -284,8 +283,9 @@ var Lokales = /** @class */ (function () {
         var isPlural = count > 1 ? true : false;
         var supportsPlural = this.isValue(plural);
         var shouldQueue;
-        if (!cache[locale])
+        if (!cache[locale]) {
             cache[locale] = this.readLocale();
+        }
         var existing = cache[locale][singular]; // value already exists.
         if (!existing && this.options.update) {
             if (!supportsPlural) {
@@ -369,6 +369,41 @@ var Lokales = /** @class */ (function () {
         if (!this.cache[locale])
             this.cache[locale] = this.readLocale(locale, directory);
         return this.cache[locale][key];
+    };
+    /**
+     * Backup
+     * : Creates backup copy of file.
+     *
+     * @param src the original source path to be backed up.
+     */
+    Lokales.prototype.backup = function (src) {
+        try {
+            var parsed = path_1.parse(src);
+            var dest = path_1.join(parsed.dir, parsed.name + '.bak' + parsed.ext);
+            fs_1.createReadStream(src).pipe(fs_1.createWriteStream(dest));
+        }
+        catch (ex) {
+            this.error(ex);
+        }
+    };
+    /**
+     * Purge
+     * : Purges any backup files in locales directory.
+     */
+    Lokales.prototype.purge = function () {
+        var _this = this;
+        var stats = fs_1.statSync(this.options.directory);
+        var files = fs_1.readdirSync(this.options.directory, 'utf-8');
+        var ctr = 0;
+        files.forEach(function (f, i) {
+            if (/bak\.json$/.test(f.toString())) {
+                fs_1.unlinkSync(path_1.join(_this.options.directory, f.toString()));
+                ctr++;
+            }
+        });
+        console.log();
+        console.log("successfully purged " + ctr + " file(s).");
+        console.log();
     };
     Lokales.prototype.__ = function (val) {
         var args = [];
