@@ -226,8 +226,8 @@ export class Lokales {
    *
    * @param state the current state of options object.
    */
-  private writeQueue(updated: ILokalesUpdated, state: ILokalesOptions) {
-    this.queue.push([updated, state]);
+  private writeQueue(updated: ILokalesUpdated) {
+    this.queue.push(updated);
     if (this.queue.length === 1)
       this.processQueue();
   }
@@ -238,9 +238,8 @@ export class Lokales {
    */
   private processQueue() {
 
-    const item = this.queue[0];
-    const updated = item[0];
-    const opts: ILokalesOptions = item[1];
+    const updated = this.queue[0];
+    const opts: ILokalesOptions = updated.options;
     const path = this.resolveFile(opts.directory, opts.locale, opts.localeFallback);
     const serialized = JSON.stringify(this.cache[opts.locale], null, 2);
 
@@ -354,8 +353,9 @@ export class Lokales {
         singular: singular,
         plural: plural,
         count: count,
-        args: args
-      }, this.options);
+        args: args,
+        options: this.options
+      });
 
     if (~val.indexOf('%d'))
       args.push(count);

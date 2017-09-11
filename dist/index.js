@@ -203,8 +203,8 @@ var Lokales = /** @class */ (function () {
      *
      * @param state the current state of options object.
      */
-    Lokales.prototype.writeQueue = function (updated, state) {
-        this.queue.push([updated, state]);
+    Lokales.prototype.writeQueue = function (updated) {
+        this.queue.push(updated);
         if (this.queue.length === 1)
             this.processQueue();
     };
@@ -214,9 +214,8 @@ var Lokales = /** @class */ (function () {
      */
     Lokales.prototype.processQueue = function () {
         var _this = this;
-        var item = this.queue[0];
-        var updated = item[0];
-        var opts = item[1];
+        var updated = this.queue[0];
+        var opts = updated.options;
         var path = this.resolveFile(opts.directory, opts.locale, opts.localeFallback);
         var serialized = JSON.stringify(this.cache[opts.locale], null, 2);
         if (!serialized)
@@ -321,8 +320,9 @@ var Lokales = /** @class */ (function () {
                 singular: singular,
                 plural: plural,
                 count: count,
-                args: args
-            }, this.options);
+                args: args,
+                options: this.options
+            });
         if (~val.indexOf('%d'))
             args.push(count);
         return util_1.format.apply(void 0, [val].concat(args));

@@ -78,7 +78,7 @@ export declare class Lokales {
      *
      * @param state the current state of options object.
      */
-    private writeQueue(updated, state);
+    private writeQueue(updated);
     /**
      * Process Queue
      * : Processes queued jobs saving to file.

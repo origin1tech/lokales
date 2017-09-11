@@ -23,6 +23,7 @@ export interface ILokalesUpdated {
   plural?: string;
   count?: number;
   args?: any[];
+  options?: ILokalesOptions;
 }
 
 export interface ILokalesItem {

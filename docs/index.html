@@ -67,30 +67,44 @@
 				<h1 id="lokales">Lokales</h1>
 				<p>Barebones i18n localization written in TypeScript. Similar to <a href="https://github.com/yargs/y18n">y18n</a> but with a few improvements, written in TypeScript and handles errors better preventing corrupt or empty locale files. Other than that about the same.</p>
 				<h2 id="quick-start">Quick Start</h2>
+				<p>Initialize using ES5 or ES6/TypeScript Imports.</p>
 				<pre><code class="lang-ts"><span class="hljs-keyword">import</span> { Lokales } <span class="hljs-keyword">from</span> <span class="hljs-string">'lokales'</span>;
-
 <span class="hljs-keyword">const</span> lokales = <span class="hljs-keyword">new</span> Lokales({ <span class="hljs-comment">/* your options */</span> });
 </code></pre>
-				<p>OR ES5</p>
+				<p><strong>OR ES5</strong></p>
 				<pre><code class="lang-js"><span class="hljs-keyword">const</span> Lokales = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lokales'</span>).Lokales;
-
 <span class="hljs-keyword">const</span> lokales = <span class="hljs-keyword">new</span> Lokales({ <span class="hljs-comment">/* your options */</span> });
 </code></pre>
-				<h3 id="usage">Usage</h3>
 				<p><strong>Singular</strong></p>
+				<p>Singular example passing key and format values.</p>
 				<pre><code class="lang-ts">lokales.__(<span class="hljs-string">'Hello my name is %s.'</span>, <span class="hljs-string">'Joe'</span>);
 <span class="hljs-comment">// Result &gt; Hello my name is Joe.</span>
 </code></pre>
 				<p><strong>Plural</strong></p>
+				<p>Plural example passing singular key, plural key, count and format values.</p>
 				<pre><code class="lang-ts">lokales.__(<span class="hljs-string">'I have %d cat'</span>, <span class="hljs-string">'I have %d cats'</span>, <span class="hljs-number">2</span>, <span class="hljs-string">'Joe'</span>);
 <span class="hljs-comment">// Result &gt; I have 2 cats.</span>
 </code></pre>
 				<p><strong>Literal</strong></p>
+				<p>Template literal example.</p>
 				<pre><code class="lang-ts"><span class="hljs-keyword">const</span> color = <span class="hljs-string">'blue'</span>;
 lokales.__<span class="hljs-string">`My favorite color is <span class="hljs-subst">${color}</span>.`</span>;
 <span class="hljs-comment">// Result &gt; My favorite color is blue.</span>
 </code></pre>
+				<h2 id="options">Options</h2>
+				<p>Options can also be set using the <strong>lokales.setOption(key, value)</strong> method.</p>
+				<table>
+					<thead><tr><td>Key</td><td>Description</td></tr><thead>
+							<tbody>
+								<tr><td>directory</td><td>The directory where locales are stored.</td></tr>
+								<tr><td>locale</td><td>The active locale to be used.</td></tr>
+								<tr><td>update</td><td>When true localization file is updated when key is unknown.</td></tr>
+								<tr><td>onUpdate</td><td>Custom callback called on locale file updated.</td></tr>
+								<tr><td>onError</td><td>Custom callback called on error.</td></tr>
+							</tbody>
+				</table>
 				<h2 id="api">API</h2>
+				<p>Simple API for plural or singular localization along with get and set for options.</p>
 				<table>
 					<thead><tr><td>Method</td><td>Arguments</td><td>Description</td></tr><thead>
 							<tbody>
@@ -101,6 +115,66 @@ lokales.__<span class="hljs-string">`My favorite color is <span class="hljs-subs
 								<tr><td>keyExists</td><td>key: string, locale?: string, directory?: string</td><td>Checks if key exists in locale.</td></tr>
 							</tbody>
 				</table>
+				<h2 id="advanced-usage">Advanced Usage</h2>
+				<p>In some cases it may be useful to call a translate API after your primary localization file is updated. For example upon updating the en.json locale you may with to update perhaps the es, fr, ru or it locales. Here&#39;s an example using <a href="https://googlecloudplatform.github.io/google-cloud-node/#/docs/translate/1.0.0/translate">Google Translate</a>.</p>
+				<p><strong>IMPORTANT</strong></p>
+				<p>A quick note about the below example. One key piece missing below for the sake of brevity is some sort of method to serialialize and deserialize the string to be translated. This is because the translate API won&#39;t typically know what to do with %s or %d. You can simply iterate the string and replace these tokens with tokens your translate API will ignore. The restructure the data after translation.</p>
+				<pre><code class="lang-ts"><span class="hljs-keyword">import</span> { Lokales } <span class="hljs-keyword">from</span> <span class="hljs-string">'lokales'</span>;
+<span class="hljs-keyword">import</span> { translate } <span class="hljs-keyword">from</span> <span class="hljs-string">'@google-cloud'</span>;
+<span class="hljs-keyword">import</span> { writeFile } <span class="hljs-keyword">from</span> <span class="hljs-string">'fs'</span>;
+<span class="hljs-keyword">import</span> { join } <span class="hljs-keyword">from</span> <span class="hljs-string">'path'</span>;
+
+<span class="hljs-keyword">const</span> lokales = <span class="hljs-keyword">new</span> Lokales({ onUpdate: onUpdate });
+<span class="hljs-keyword">const</span> trans = translate({
+  key: <span class="hljs-string">'YOUR_API_KEY'</span>
+});
+
+<span class="hljs-comment">/**
+ * On Update
+ * : Called when process queue updated locale.
+ *
+ * Updated Object Contains:
+ * singular: string;  // The singular key string.
+ * plural: string;    // The plural key if provided or null.
+ * count: number;     // The count when plural is used.
+ * args: [];          // The original format arguments passed.
+ * options: {}        // Snapshot of options. (see options above for details)
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onUpdate</span>(<span class="hljs-params">err, updated, instance</span>) </span>{
+
+  <span class="hljs-keyword">if</span> (err)
+    <span class="hljs-keyword">throw</span> err; <span class="hljs-comment">// do something with error.</span>
+
+  <span class="hljs-keyword">const</span> value = updated.singular <span class="hljs-comment">// you might check for plural here but for simplicity.</span>
+  <span class="hljs-keyword">const</span> options = updated.options;
+  <span class="hljs-keyword">const</span> lang = <span class="hljs-string">'es'</span>; <span class="hljs-comment">// the lang we want to translate to.</span>
+  <span class="hljs-keyword">const</span> translated: <span class="hljs-built_in">any</span> = {}; <span class="hljs-comment">// object to store translated values.</span>
+
+  trans.translate(value, lang, <span class="hljs-function">(<span class="hljs-params">err, res</span>) =&gt;</span> {
+
+    <span class="hljs-keyword">if</span> (err)
+      <span class="hljs-keyword">throw</span> err;
+
+    <span class="hljs-keyword">if</span> (!<span class="hljs-built_in">Array</span>.isArray(res)) <span class="hljs-comment">// ensure our result is an array.</span>
+      res = [res];
+
+    res.forEach(<span class="hljs-function">(<span class="hljs-params">s, i</span>) =&gt;</span> {
+      translated[s] = s; <span class="hljs-comment">// see above important note.</span>
+    });
+
+    <span class="hljs-keyword">const</span> savePath = path.join(options.directory, lang + <span class="hljs-string">'.json'</span>);
+    <span class="hljs-keyword">const</span> serialized = <span class="hljs-built_in">JSON</span>.stringify(translated, <span class="hljs-literal">null</span>, <span class="hljs-number">2</span>);
+
+    fs.writeFile(savePath, serialized, <span class="hljs-function">(<span class="hljs-params">err</span>) =&gt;</span> {
+      <span class="hljs-comment">// do something with/if error.</span>
+      <span class="hljs-comment">// or</span>
+      <span class="hljs-comment">// log success etc.</span>
+    });
+
+  });
+
+}
+</code></pre>
 				<h2 id="license">License</h2>
 				<p>See <a href="LICENSE.md">LICENSE.md</a></p>
 			</div>

@@ -24,7 +24,13 @@
       "./dist"
     ]
   },
-  "keywords": [],
+  "keywords": [
+    "i18n",
+    "y81n",
+    "localization",
+    "locales",
+    "translate"
+  ],
   "author": "Origin1 Technologies <origin1tech@gmail.com>",
   "license": "ISC",
   "bugs": {
