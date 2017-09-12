@@ -17,6 +17,8 @@ const DEFAULTS = {
   onError: undefined        // called on write queue error.
 };
 
+let instance = null; // ensure singleton.
+
 export class Lokales {
 
   cache: ILokalesCache = {};
@@ -25,11 +27,16 @@ export class Lokales {
   options: ILokalesOptions;
 
   constructor(options?: ILokalesOptions) {
+    if (instance)
+      return instance;
     this.options = this.extend({}, DEFAULTS, options);
-    process.on('exit', (code) => {
-      if (this.queue.length) // cleanup ensure queue is processed.
-        this.processQueue();
-    });
+    const self = this;
+    function onExit(code) {
+      if (self.queue.length) // cleanup ensure queue is processed.
+        self.processQueue();
+    }
+    process.on('exit', onExit);
+    instance = this;
   }
 
   // UTILS //
@@ -41,9 +48,7 @@ export class Lokales {
    * @param err the error to be handled.
    */
   private error(err: string | Error) {
-
     const errorHandler = this.options.onError;
-
     if (!(err instanceof Error)) {
       err = new Error(err);
       const stack: any = (err.stack || '').split(EOL);
@@ -51,7 +56,6 @@ export class Lokales {
       if (msg && stack.length)
         err.stack = [msg].concat(stack.slice(1)).join(EOL);
     }
-
     if (errorHandler) {
       errorHandler(err);
     }
@@ -59,7 +63,6 @@ export class Lokales {
       console.log();
       throw err;
     }
-
   }
 
   /**
@@ -453,13 +456,13 @@ export class Lokales {
     console.log();
   }
 
-  __(val: string, ...args: any[]) {
+  __(val: string, ...args: any[]): string {
     if (Array.isArray(val)) // is template literal.
       return this.templateLiteral(val, args);
     return this.localize(val, null, null, ...args);
   }
 
-  __n(singular: string, plural: string, count?: number, ...args: any[]) {
+  __n(singular: string, plural: string, count?: number, ...args: any[]): string {
     return this.localize(singular, plural, count, ...args);
   }
 

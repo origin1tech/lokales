@@ -92,7 +92,7 @@ export declare class Lokales {
      * @param values template literal args.
      */
     private templateLiteral(strings, values);
-    readonly t: (val: string, ...args: any[]) => any;
+    readonly t: (val: string, ...args: any[]) => string;
     readonly tn: (singular: string, plural: string, count?: number, ...args: any[]) => string;
     /**
      * Localize
@@ -140,6 +140,6 @@ export declare class Lokales {
      * : Purges any backup files in locales directory.
      */
     purge(): void;
-    __(val: string, ...args: any[]): any;
+    __(val: string, ...args: any[]): string;
     __n(singular: string, plural: string, count?: number, ...args: any[]): string;
 }

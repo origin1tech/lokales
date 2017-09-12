@@ -13,16 +13,21 @@ var DEFAULTS = {
     onUpdate: undefined,
     onError: undefined // called on write queue error.
 };
+var instance = null; // ensure singleton.
 var Lokales = /** @class */ (function () {
     function Lokales(options) {
-        var _this = this;
         this.cache = {};
         this.queue = [];
+        if (instance)
+            return instance;
         this.options = this.extend({}, DEFAULTS, options);
-        process.on('exit', function (code) {
-            if (_this.queue.length)
-                _this.processQueue();
-        });
+        var self = this;
+        function onExit(code) {
+            if (self.queue.length)
+                self.processQueue();
+        }
+        process.on('exit', onExit);
+        instance = this;
     }
     // UTILS //
     /**
