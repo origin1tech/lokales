@@ -101,7 +101,7 @@ const actions = {
       .bump()
       .commit()
       .publish();
-    log.info(`successfully published ${pkg.name}.`)
+    // log.info(`successfully published ${pkg.name}.`)
     return actions;
   },
 
