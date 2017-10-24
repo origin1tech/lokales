@@ -1,10 +1,19 @@
 import { ILokalesOptions, ILokalesCache, LokalesOptionKeys } from './interfaces';
 export * from './interfaces';
 export declare class Lokales {
+    private _backedUp;
+    private _exiting;
     cache: ILokalesCache;
     queue: any[];
     options: ILokalesOptions;
     constructor(options?: ILokalesOptions);
+    /**
+     * On Exit.
+     * Ensures graceful exit writing any in queue.
+     *
+     * @param code the error code on process exit or exception.
+     */
+    private onExit(code);
     /**
      * Error
      * : Handles module errors.
@@ -56,6 +65,14 @@ export declare class Lokales {
      * @param fn a callback function on result.
      */
     private pathExists(path, isDir?, fn?);
+    /**
+     * Resolve Path
+     * : Resolves the path for a locale file.
+     *
+     * @param locale the locale to use for resolving path.
+     * @param directory an optional directory for resolving locale file.
+     */
+    private resolvePath(locale?, directory?);
     /**
      * Resolve Locale
      * : Resolves the locale or fallback path.

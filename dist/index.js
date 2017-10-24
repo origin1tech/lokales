@@ -21,15 +21,24 @@ var Lokales = /** @class */ (function () {
         if (instance)
             return instance;
         this.options = this.extend({}, DEFAULTS, options);
-        var self = this;
-        function onExit(code) {
-            if (self.queue.length)
-                self.processQueue();
-        }
-        process.on('exit', onExit);
+        process.on('exit', this.onExit.bind(this));
+        process.on('uncaughtException', this.onExit.bind(this));
+        // Create a backup.
+        this.backup(this.resolvePath());
         instance = this;
     }
     // UTILS //
+    /**
+     * On Exit.
+     * Ensures graceful exit writing any in queue.
+     *
+     * @param code the error code on process exit or exception.
+     */
+    Lokales.prototype.onExit = function (code) {
+        if (this.queue.length && !this._exiting) {
+            this.processQueue();
+        }
+    };
     /**
      * Error
      * : Handles module errors.
@@ -154,6 +163,18 @@ var Lokales = /** @class */ (function () {
         }
     };
     /**
+     * Resolve Path
+     * : Resolves the path for a locale file.
+     *
+     * @param locale the locale to use for resolving path.
+     * @param directory an optional directory for resolving locale file.
+     */
+    Lokales.prototype.resolvePath = function (locale, directory) {
+        directory = directory || this.options.directory;
+        locale = locale || this.options.locale;
+        return this.resolveFile(directory, locale);
+    };
+    /**
      * Resolve Locale
      * : Resolves the locale or fallback path.
      *
@@ -180,9 +201,7 @@ var Lokales = /** @class */ (function () {
      * @param locale the active locale.
      */
     Lokales.prototype.readLocale = function (locale, directory) {
-        directory = directory || this.options.directory;
-        locale = locale || this.options.locale;
-        var path = this.resolveFile(directory, locale);
+        var path = this.resolvePath(directory, locale);
         if (this.options.backup)
             this.backup(path);
         var obj = {};
@@ -382,12 +401,18 @@ var Lokales = /** @class */ (function () {
      * @param src the original source path to be backed up.
      */
     Lokales.prototype.backup = function (src) {
+        var _this = this;
         try {
             var parsed = path_1.parse(src);
             var dest = path_1.join(parsed.dir, parsed.name + '.bak' + parsed.ext);
-            fs_1.createReadStream(src).pipe(fs_1.createWriteStream(dest));
+            var writer = fs_1.createWriteStream(dest);
+            fs_1.createReadStream(src).pipe(writer);
+            writer.on('finish', function () {
+                _this._backedUp = true;
+            });
         }
         catch (ex) {
+            this._backedUp = false;
             this.error(ex);
         }
     };

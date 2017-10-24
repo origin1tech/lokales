@@ -21,25 +21,37 @@ let instance = null; // ensure singleton.
 
 export class Lokales {
 
+  private _backedUp: boolean;
+  private _exiting: boolean;
+
   cache: ILokalesCache = {};
   queue: any[] = [];
-
   options: ILokalesOptions;
 
   constructor(options?: ILokalesOptions) {
     if (instance)
       return instance;
     this.options = this.extend({}, DEFAULTS, options);
-    const self = this;
-    function onExit(code) {
-      if (self.queue.length) // cleanup ensure queue is processed.
-        self.processQueue();
-    }
-    process.on('exit', onExit);
+    process.on('exit', this.onExit.bind(this));
+    process.on('uncaughtException', this.onExit.bind(this));
+    // Create a backup.
+    this.backup(this.resolvePath());
     instance = this;
   }
 
   // UTILS //
+
+  /**
+   * On Exit.
+   * Ensures graceful exit writing any in queue.
+   *
+   * @param code the error code on process exit or exception.
+   */
+  private onExit(code) {
+    if (this.queue.length && !this._exiting) {
+      this.processQueue();
+    }
+  }
 
   /**
    * Error
@@ -153,7 +165,7 @@ export class Lokales {
       if (!fn) {
         if (isDir)
           return statSync(path).isDirectory();
-        return statSync(path).isFile()
+        return statSync(path).isFile();
       }
       stat(path, (e, s) => {
         if (e) {
@@ -170,6 +182,19 @@ export class Lokales {
         return false;
       fn(false);
     }
+  }
+
+  /**
+   * Resolve Path
+   * : Resolves the path for a locale file.
+   *
+   * @param locale the locale to use for resolving path.
+   * @param directory an optional directory for resolving locale file.
+   */
+  private resolvePath(locale?: string, directory?: string) {
+    directory = directory || this.options.directory;
+    locale = locale || this.options.locale;
+    return this.resolveFile(directory, locale);
   }
 
   /**
@@ -200,14 +225,12 @@ export class Lokales {
    * @param locale the active locale.
    */
   private readLocale(locale?: string, directory?: string) {
-    directory = directory || this.options.directory;
-    locale = locale || this.options.locale;
-    const path = this.resolveFile(directory, locale);
+    const path = this.resolvePath(directory, locale);
     if (this.options.backup) // backup a copy of the locale.
       this.backup(path);
     let obj: any = {};
     try {
-      obj = JSON.parse(readFileSync(path, 'utf-8'))
+      obj = JSON.parse(readFileSync(path, 'utf-8'));
 
     }
     catch (ex) {
@@ -327,7 +350,7 @@ export class Lokales {
         cache[locale][singular] = { // plural localization.
           one: singular,
           other: plural
-        }
+        };
       }
 
       shouldQueue = true;
@@ -340,7 +363,7 @@ export class Lokales {
       cache[locale][singular] = {
         one: singular,
         other: plural
-      }
+      };
       shouldQueue = true;
     }
 
@@ -350,7 +373,7 @@ export class Lokales {
       if (isPlural)
         val = cache[locale][singular].other; // get plural value.
       else
-        val = cache[locale][singular].one // get singular.
+        val = cache[locale][singular].one; // get singular.
     }
 
     if (shouldQueue)  // add write to queue to reflect changes.
@@ -430,9 +453,14 @@ export class Lokales {
     try {
       const parsed = parse(src);
       const dest = join(parsed.dir, parsed.name + '.bak' + parsed.ext);
-      createReadStream(src).pipe(createWriteStream(dest));
+      const writer = createWriteStream(dest);
+      createReadStream(src).pipe(writer);
+      writer.on('finish', () => {
+        this._backedUp = true;
+      });
     }
     catch (ex) {
+      this._backedUp = false;
       this.error(ex);
     }
   }

@@ -8,3 +8,5 @@ test.html
 .vscode/
 tslint.json
 typedoc.json
+src/
+build/
