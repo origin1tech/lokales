@@ -151,7 +151,7 @@ export declare class Lokales {
      *
      * @param src the original source path to be backed up.
      */
-    backup(src: string): void;
+    backup(src: string, data: string | object): void;
     /**
      * Purge
      * : Purges any backup files in locales directory.

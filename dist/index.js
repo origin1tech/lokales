@@ -23,8 +23,6 @@ var Lokales = /** @class */ (function () {
         this.options = this.extend({}, DEFAULTS, options);
         process.on('exit', this.onExit.bind(this));
         process.on('uncaughtException', this.onExit.bind(this));
-        // Create a backup.
-        this.backup(this.resolvePath());
         instance = this;
     }
     // UTILS //
@@ -202,11 +200,12 @@ var Lokales = /** @class */ (function () {
      */
     Lokales.prototype.readLocale = function (locale, directory) {
         var path = this.resolvePath(directory, locale);
-        if (this.options.backup)
-            this.backup(path);
         var obj = {};
         try {
-            obj = JSON.parse(fs_1.readFileSync(path, 'utf-8'));
+            var str = fs_1.readFileSync(path, 'utf-8');
+            if (this.options.backup)
+                this.backup(path, str);
+            obj = JSON.parse(str);
         }
         catch (ex) {
             if (ex instanceof SyntaxError) {
@@ -400,16 +399,14 @@ var Lokales = /** @class */ (function () {
      *
      * @param src the original source path to be backed up.
      */
-    Lokales.prototype.backup = function (src) {
-        var _this = this;
+    Lokales.prototype.backup = function (src, data) {
+        src = src || this.resolvePath();
+        if (this.isPlainObject(data))
+            data = JSON.stringify(data);
         try {
             var parsed = path_1.parse(src);
             var dest = path_1.join(parsed.dir, parsed.name + '.bak' + parsed.ext);
-            var writer = fs_1.createWriteStream(dest);
-            fs_1.createReadStream(src).pipe(writer);
-            writer.on('finish', function () {
-                _this._backedUp = true;
-            });
+            fs_1.writeFileSync(dest, data, 'utf-8');
         }
         catch (ex) {
             this._backedUp = false;

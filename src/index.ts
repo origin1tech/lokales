@@ -1,7 +1,7 @@
 
 import { IMap, LokalesErrorHandler, LokalesUpdateHandler, ILokalesOptions, ILokalesCache, ILokalesItem, ILokalesUpdated, LokalesOptionKeys } from './interfaces';
 import { parse, resolve, join } from 'path';
-import { readFileSync, writeFile, stat, statSync, Stats, createReadStream, createWriteStream, readdirSync, unlinkSync } from 'fs';
+import { readFileSync, writeFile, writeFileSync, stat, statSync, Stats, createReadStream, createWriteStream, readdirSync, unlinkSync } from 'fs';
 import { format } from 'util';
 import { EOL } from 'os';
 
@@ -34,8 +34,6 @@ export class Lokales {
     this.options = this.extend({}, DEFAULTS, options);
     process.on('exit', this.onExit.bind(this));
     process.on('uncaughtException', this.onExit.bind(this));
-    // Create a backup.
-    this.backup(this.resolvePath());
     instance = this;
   }
 
@@ -226,12 +224,12 @@ export class Lokales {
    */
   private readLocale(locale?: string, directory?: string) {
     const path = this.resolvePath(directory, locale);
-    if (this.options.backup) // backup a copy of the locale.
-      this.backup(path);
     let obj: any = {};
     try {
-      obj = JSON.parse(readFileSync(path, 'utf-8'));
-
+      const str = readFileSync(path, 'utf-8');
+      if (this.options.backup) // backup a copy of the locale.
+        this.backup(path, str);
+      obj = JSON.parse(str);
     }
     catch (ex) {
       if (ex instanceof SyntaxError) {
@@ -449,15 +447,14 @@ export class Lokales {
    *
    * @param src the original source path to be backed up.
    */
-  backup(src: string) {
+  backup(src: string, data: string | object) {
+    src = src || this.resolvePath();
+    if (this.isPlainObject(data))
+      data = JSON.stringify(data);
     try {
       const parsed = parse(src);
       const dest = join(parsed.dir, parsed.name + '.bak' + parsed.ext);
-      const writer = createWriteStream(dest);
-      createReadStream(src).pipe(writer);
-      writer.on('finish', () => {
-        this._backedUp = true;
-      });
+      writeFileSync(dest, data, 'utf-8');
     }
     catch (ex) {
       this._backedUp = false;
