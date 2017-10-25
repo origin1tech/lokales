@@ -69,7 +69,7 @@ const actions = {
   bump: () => {
     stiks.bump();
     pkg = stiks.pkg();
-    log.info(`successfully bumped package to version ${pkg.version}.`)
+    // log.info(`successfully bumped package to version ${pkg.version}.`)
     return actions;
   },
 

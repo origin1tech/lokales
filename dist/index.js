@@ -22,7 +22,6 @@ var Lokales = /** @class */ (function () {
             return instance;
         this.options = this.extend({}, DEFAULTS, options);
         process.on('exit', this.onExit.bind(this));
-        process.on('uncaughtException', this.onExit.bind(this));
         instance = this;
     }
     // UTILS //
