@@ -1,6 +1,6 @@
 {
   "name": "lokales",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "Lightweight barebones i18n localization written in TypeScript.",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
