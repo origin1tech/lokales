@@ -14,9 +14,10 @@ export interface ILokalesOptions {
   locale?: string;
   localeFallback?: string;
   update?: boolean;
-  backup?: boolean;
   onUpdate?: LokalesUpdateHandler;
   onError?: LokalesErrorHandler;
+  // Deprecated //
+  backup?: boolean;
 }
 
 export interface ILokalesUpdated {

@@ -10,9 +10,9 @@ export interface ILokalesOptions {
     locale?: string;
     localeFallback?: string;
     update?: boolean;
-    backup?: boolean;
     onUpdate?: LokalesUpdateHandler;
     onError?: LokalesErrorHandler;
+    backup?: boolean;
 }
 export interface ILokalesUpdated {
     singular?: string;

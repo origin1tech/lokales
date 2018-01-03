@@ -1,41 +1,33 @@
 const stiks = require('stiks');
+const sym = require('log-symbols');
 const log = stiks.log;
-const argv = stiks.argv;
-const colurs = stiks.colurs.get();
+const colurs = new stiks.colurs.Colurs();
 const chek = stiks.chek;
-const exec = stiks.exec;
-let pkg = stiks.pkg();
+const pkg = stiks.pkg();
 const build = pkg && pkg.build;
 
 // Ensure build info.
 if (!build)
-  log.error('whoops looks like you forgot to configure package.json "build".').exit();
+  log.error('Whoops looks like you forgot to configure package.json "build".');
 
 // Parse command line arguments.
-const parsed = argv.parse();
-const cmdOpts = argv.options;
-let cmd, opts;
+const parsed = stiks.argv.parse();
+const command = parsed.command;
+const commands = parsed.commands;
+const flags = parsed.flags;
 
-/**
- * Normalize
- * Normalizes the command arguments.
- *
- * @param {string|array} cmds
- * @param {string|array} options
- */
-function normalize(cmds, options) {
-  options = options || argv.options;
-  if (chek.isString(cmds))
-    cmds = cmds.split(' ');
-  if (chek.isString(options))
-    options = options.split(' ');
-  const output = cmds;
-  // Ensure we don't append dupes.
-  options.forEach((o) => {
-    if (!chek.contains(output, o))
-      output.push(o);
-  });
-  return output;
+// Get user input less the command.
+const input = parsed.normalized.slice(1);
+
+// Don't merge in command line args automatically
+// as will blow up spawn'd process.
+const noMergeCmds = ['build', 'release'];
+
+// Merges default args with any input args.
+function normalize(def) {
+  if (~noMergeCmds.indexOf(command))
+    return stiks.argv.splitArgs(def);
+  return stiks.argv.mergeArgs(def, input);
 }
 
 // Build actions.
@@ -47,29 +39,34 @@ const actions = {
   },
 
   copy: () => {
-    stiks.copy(build.copy);
+    stiks.copyAll(build.copy);
     return actions;
   },
 
-  compile: () => {
-    opts = '-p ./src/tsconfig.json'
-    cmd = normalize('./node_modules/typescript/bin/tsc', opts);
-    exec.node(cmd);
-    // log.info(`successfully compiled ${pkg.name}.`);
+  compile: (watch) => {
+    let args = './node_modules/typescript/bin/tsc -p ./src/tsconfig.json'
+    args += (watch ? ' -w' : '');
+    args = normalize(args);
+    stiks.exec.node(args);
+    return actions;
+  },
+
+  watch: () => {
+    actions.compile(true);
     return actions;
   },
 
   docs: () => {
-    opts = '--out ./docs ./src --options ./typedoc.json';
-    cmd = normalize('./node_modules/typedoc/bin/typedoc', opts);
-    exec.node(cmd);
+    let args = './node_modules/typedoc/bin/typedoc --out ./docs ./src --options ./typedoc.json';
+    args = normalize(args);
+    stiks.exec.node(args);
     return actions;
   },
 
   bump: () => {
-    stiks.bump();
-    pkg = stiks.pkg();
-    // log.info(`successfully bumped package to version ${pkg.version}.`)
+    const type = flags.semver || 'patch';
+    const result = stiks.bump(type);
+    log(`Bumped version from ${result.previous} to ${result.current}.`);
     return actions;
   },
 
@@ -81,17 +78,18 @@ const actions = {
   },
 
   commit: () => {
-    if (!/-[a-zA-Z]{0,7}?m/g.test(cmdOpts.join(' ')))
-      opts = ['-am', '"auto commit"'];
-    cmd = normalize('commit', opts);
-    exec.command('git', 'add .');
-    exec.command('git', cmd);
-    exec.command('git', 'push');
+    let args = `commit -m "auto commit"`;
+    args = normalize(args);
+    if (flags.m)
+      args = stiks.argv.mergeArgs(args, ['-m', flags.m]);
+    stiks.exec.command('git', 'add .');
+    stiks.exec.command('git', args);
+    stiks.exec.command('git', 'push');
     return actions;
   },
 
   publish() {
-    exec.npm('publish');
+    stiks.exec.npm('publish');
     return actions;
   },
 
@@ -101,24 +99,30 @@ const actions = {
       .bump()
       .commit()
       .publish();
-    // log.info(`successfully published ${pkg.name}.`)
     return actions;
   },
 
   test: () => {
-    exec.command('mocha', '--opts ./src/mocha.opts');
+    let args = '--opts ./src/mocha.opts';
+    args = normalize(args);
+    stiks.exec.command('mocha', args);
   },
 
-  exit: (msg) => {
+  serve: () => {
+    const opts = flags || {};
+    const server = stiks.serve('dev-server', opts, true);
+  },
+
+  exit: (msg, code) => {
     if (msg)
-      log.write(msg).exit();
-    process.exit(0);
+      log(msg)
+    process.exit(code || 0);
   }
 
 };
 
-if (!actions[parsed.cmd])
-  log.error(new Error(`Failed to run command ${parsed.cmd}, the command does not exist.`)).exit();
+if (!actions[command])
+  log.error(`Failed to run command "${command}", the command does not exist.`);
 
 // Start the chain.
-actions[parsed.cmd]();
+actions[command]();

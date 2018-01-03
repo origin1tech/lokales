@@ -9,7 +9,6 @@ var DEFAULTS = {
     locale: 'en',
     localeFallback: 'en',
     update: true,
-    backup: true,
     onUpdate: undefined,
     onError: undefined // called on write queue error.
 };
@@ -21,20 +20,28 @@ var Lokales = /** @class */ (function () {
         if (instance)
             return instance;
         this.options = this.extend({}, DEFAULTS, options);
-        process.on('exit', this.onExit.bind(this));
+        var optKeys = Object.keys(this.options);
+        if (~optKeys.indexOf('backup'))
+            process.stderr.write('DEPRECATED: Lokales property "backup" has been deprecated, graceful exit now handled.\n');
+        process.on('exit', this.onExit.bind(this, 'exit'));
+        process.on('uncaughtException', this.onExit.bind(this, 'error'));
         instance = this;
     }
     // UTILS //
     /**
      * On Exit.
      * Ensures graceful exit writing any in queue.
-     *
-     * @param code the error code on process exit or exception.
      */
-    Lokales.prototype.onExit = function (code) {
-        if (this.queue.length && !this._exiting) {
-            this.processQueue();
-        }
+    Lokales.prototype.onExit = function (type, err) {
+        var _this = this;
+        // Loop until queue is empty.
+        var checkQueue = function () {
+            if (_this.queue.length)
+                process.nextTick(checkQueue);
+            if (type === 'error' && err)
+                throw err;
+        };
+        checkQueue();
     };
     /**
      * Error
@@ -55,7 +62,7 @@ var Lokales = /** @class */ (function () {
             errorHandler(err);
         }
         else {
-            console.log();
+            process.stderr.write('\n');
             throw err;
         }
     };
@@ -202,8 +209,11 @@ var Lokales = /** @class */ (function () {
         var obj = {};
         try {
             var str = fs_1.readFileSync(path, 'utf-8');
-            if (this.options.backup)
-                this.backup(path, str);
+            // if (this.options.backup) {
+            //   this._backupQueue.push([path, str]);
+            //   // backup a copy of the locale.
+            //   this.backup(path, str);
+            // }
             obj = JSON.parse(str);
         }
         catch (ex) {
@@ -235,6 +245,8 @@ var Lokales = /** @class */ (function () {
      */
     Lokales.prototype.processQueue = function () {
         var _this = this;
+        if (!this.queue.length)
+            return;
         var updated = this.queue[0];
         var opts = updated.options;
         var path = this.resolveFile(opts.directory, opts.locale, opts.localeFallback);
@@ -427,9 +439,7 @@ var Lokales = /** @class */ (function () {
                 ctr++;
             }
         });
-        console.log();
-        console.log("successfully purged " + ctr + " file(s).");
-        console.log();
+        process.stderr.write("\nLokales successfully purged " + ctr + " file(s).\n");
     };
     Lokales.prototype.__ = function (val) {
         var args = [];

@@ -3,6 +3,7 @@ export * from './interfaces';
 export declare class Lokales {
     private _backedUp;
     private _exiting;
+    private _backupQueue;
     cache: ILokalesCache;
     queue: any[];
     options: ILokalesOptions;
@@ -10,10 +11,8 @@ export declare class Lokales {
     /**
      * On Exit.
      * Ensures graceful exit writing any in queue.
-     *
-     * @param code the error code on process exit or exception.
      */
-    private onExit(code);
+    private onExit(type, err);
     /**
      * Error
      * : Handles module errors.

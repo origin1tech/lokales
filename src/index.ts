@@ -2,6 +2,7 @@
 import { IMap, LokalesErrorHandler, LokalesUpdateHandler, ILokalesOptions, ILokalesCache, ILokalesItem, ILokalesUpdated, LokalesOptionKeys } from './interfaces';
 import { parse, resolve, join } from 'path';
 import { readFileSync, writeFile, writeFileSync, stat, statSync, Stats, createReadStream, createWriteStream, readdirSync, unlinkSync } from 'fs';
+import { spawn } from 'child_process';
 import { format } from 'util';
 import { EOL } from 'os';
 
@@ -12,7 +13,6 @@ const DEFAULTS = {
   locale: 'en',             // the active locale.
   localeFallback: 'en',     // a fallback locale when active fails.
   update: true,             // when true allows updates to locale file.
-  backup: true,             // when true backup copy of active locale is created.
   onUpdate: undefined,      // method on update called good for translating.
   onError: undefined        // called on write queue error.
 };
@@ -23,6 +23,7 @@ export class Lokales {
 
   private _backedUp: boolean;
   private _exiting: boolean;
+  private _backupQueue: any[];
 
   cache: ILokalesCache = {};
   queue: any[] = [];
@@ -32,7 +33,11 @@ export class Lokales {
     if (instance)
       return instance;
     this.options = this.extend({}, DEFAULTS, options);
-    process.on('exit', this.onExit.bind(this));
+    const optKeys = Object.keys(this.options);
+    if (~optKeys.indexOf('backup'))
+      process.stderr.write('DEPRECATED: Lokales property "backup" has been deprecated, graceful exit now handled.\n');
+    process.on('exit', this.onExit.bind(this, 'exit'));
+    process.on('uncaughtException', this.onExit.bind(this, 'error'));
     instance = this;
   }
 
@@ -41,13 +46,19 @@ export class Lokales {
   /**
    * On Exit.
    * Ensures graceful exit writing any in queue.
-   *
-   * @param code the error code on process exit or exception.
    */
-  private onExit(code) {
-    if (this.queue.length && !this._exiting) {
-      this.processQueue();
+  private onExit(type, err) {
+
+    // Loop until queue is empty.
+    const checkQueue = () => {
+      if (this.queue.length)
+        process.nextTick(checkQueue);
+      if (type === 'error' && err)
+        throw err;
     }
+
+    checkQueue();
+
   }
 
   /**
@@ -69,7 +80,7 @@ export class Lokales {
       errorHandler(err);
     }
     else {
-      console.log();
+      process.stderr.write('\n');
       throw err;
     }
   }
@@ -226,8 +237,11 @@ export class Lokales {
     let obj: any = {};
     try {
       const str = readFileSync(path, 'utf-8');
-      if (this.options.backup) // backup a copy of the locale.
-        this.backup(path, str);
+      // if (this.options.backup) {
+      //   this._backupQueue.push([path, str]);
+      //   // backup a copy of the locale.
+      //   this.backup(path, str);
+      // }
       obj = JSON.parse(str);
     }
     catch (ex) {
@@ -261,6 +275,9 @@ export class Lokales {
    * : Processes queued jobs saving to file.
    */
   private processQueue() {
+
+    if (!this.queue.length)
+      return;
 
     const updated = this.queue[0];
     const opts: ILokalesOptions = updated.options;
@@ -475,9 +492,9 @@ export class Lokales {
         ctr++;
       }
     });
-    console.log();
-    console.log(`successfully purged ${ctr} file(s).`);
-    console.log();
+
+    process.stderr.write(`\nLokales successfully purged ${ctr} file(s).\n`);
+
   }
 
   __(val: string, ...args: any[]): string {
