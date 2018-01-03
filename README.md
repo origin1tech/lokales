@@ -2,6 +2,10 @@
 
 Barebones i18n localization written in TypeScript. Similar to [y18n](https://github.com/yargs/y18n) but with a few improvements, written in TypeScript and handles errors better preventing corrupt or empty locale files. Other than that about the same.
 
+## NOTE
+
+There was an issue where locales were corrupted on process.exit or uncaught exceptions. This has been resolved starting in v1.0.11
+
 ## Quick Start
 
 Initialize using ES5 or ES6/TypeScript Imports.
