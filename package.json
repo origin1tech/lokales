@@ -1,6 +1,6 @@
 {
   "name": "lokales",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "Lightweight barebones i18n localization written in TypeScript.",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -26,6 +26,28 @@
     ],
     "copy": {}
   },
+  "nyc": {
+    "include": [
+      "src/**/*.ts",
+      "src/**/*.tsx"
+    ],
+    "exclude": [
+      "src/**/*.spec.ts"
+    ],
+    "extension": [
+      ".ts",
+      ".tsx"
+    ],
+    "require": [
+      "./build/spec"
+    ],
+    "reporter": [
+      "text",
+      "html"
+    ],
+    "sourceMap": true,
+    "instrument": true
+  },
   "keywords": [
     "i18n",
     "y81n",
@@ -45,6 +67,7 @@
     "@types/node": "^8.0.28",
     "chai": "^4.1.2",
     "mocha": "^5.2.0",
+    "nyc": "^11.8.0",
     "stiks": "^1.1.4",
     "ts-node": "^3.3.0",
     "tslint": "^5.5.0",

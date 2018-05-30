@@ -70,17 +70,14 @@ export class Lokales {
   private error(err: string | Error) {
     const errorHandler = this.options.onError;
     if (!(err instanceof Error)) {
+      const msg = err;
       err = new Error(err);
-      const stack: any = (err.stack || '').split(EOL);
-      const msg = stack.shift();
-      if (msg && stack.length)
-        err.stack = [msg].concat(stack.slice(1)).join(EOL);
+      err.message = msg;
     }
     if (errorHandler) {
       errorHandler(err);
     }
     else {
-      process.stderr.write('\n');
       throw err;
     }
   }
@@ -141,17 +138,7 @@ export class Lokales {
    * @param src the source object.
    */
   private extend(dest: any, ...args: any[]) {
-    dest = dest || {};
-    while (args.length) {
-      const current = args.shift() || {};
-      if (this.isPlainObject(current)) {
-        for (const k in current) {
-          if (this.isValue(current[k]))
-            dest[k] = current[k];
-        }
-      }
-    }
-    return dest;
+    return Object.assign(dest, ...args);
   }
 
 

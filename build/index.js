@@ -1,5 +1,8 @@
 const stiks = require('stiks');
 const sym = require('log-symbols');
+const {
+  resolve
+} = require('path');
 const log = stiks.log;
 const colurs = new stiks.colurs.Colurs();
 const chek = stiks.chek;
@@ -44,7 +47,7 @@ const actions = {
   },
 
   compile: (watch) => {
-    let args = './node_modules/typescript/bin/tsc -p ./src/tsconfig.json'
+    let args = './node_modules/typescript/bin/tsc -p ./src/tsconfig.json';
     args += (watch ? ' -w' : '');
     args = normalize(args);
     stiks.exec.node(args);
@@ -60,6 +63,7 @@ const actions = {
     let args = './node_modules/typedoc/bin/typedoc --out ./docs ./src --options ./typedoc.json';
     args = normalize(args);
     stiks.exec.node(args);
+    stiks.exec.command('touch', './docs/.nojekyll');
     return actions;
   },
 
@@ -103,9 +107,9 @@ const actions = {
   },
 
   test: () => {
-    let args = '--opts ./src/mocha.opts';
+    let args = 'mocha --opts ./src/mocha.opts';
     args = normalize(args);
-    stiks.exec.command('mocha', args);
+    stiks.exec.command('nyc', args);
   },
 
   serve: () => {
@@ -113,9 +117,15 @@ const actions = {
     const server = stiks.serve('dev-server', opts, true);
   },
 
+  open: (url) => {
+    url = url || resolve('docs/index.html'); // docs url.
+    const start = (process.platform == 'darwin' ? 'open' : process.platform == 'win32' ? 'start' : 'xdg-open');
+    require('child_process').exec(start + ' ' + url);
+  },
+
   exit: (msg, code) => {
     if (msg)
-      log(msg)
+      log(msg);
     process.exit(code || 0);
   }
 

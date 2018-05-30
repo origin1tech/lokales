@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var path_1 = require("path");
 var fs_1 = require("fs");
 var util_1 = require("util");
-var os_1 = require("os");
 var DEFAULTS = {
     directory: './locales',
     locale: 'en',
@@ -52,17 +51,14 @@ var Lokales = /** @class */ (function () {
     Lokales.prototype.error = function (err) {
         var errorHandler = this.options.onError;
         if (!(err instanceof Error)) {
+            var msg = err;
             err = new Error(err);
-            var stack = (err.stack || '').split(os_1.EOL);
-            var msg = stack.shift();
-            if (msg && stack.length)
-                err.stack = [msg].concat(stack.slice(1)).join(os_1.EOL);
+            err.message = msg;
         }
         if (errorHandler) {
             errorHandler(err);
         }
         else {
-            process.stderr.write('\n');
             throw err;
         }
     };
@@ -118,17 +114,7 @@ var Lokales = /** @class */ (function () {
         for (var _i = 1; _i < arguments.length; _i++) {
             args[_i - 1] = arguments[_i];
         }
-        dest = dest || {};
-        while (args.length) {
-            var current = args.shift() || {};
-            if (this.isPlainObject(current)) {
-                for (var k in current) {
-                    if (this.isValue(current[k]))
-                        dest[k] = current[k];
-                }
-            }
-        }
-        return dest;
+        return Object.assign.apply(Object, [dest].concat(args));
     };
     // FILE SYSTEM //
     /**
