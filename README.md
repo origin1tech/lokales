@@ -98,8 +98,7 @@ const trans = translate({
 });
 
 /**
- * On Update
- * : Called when process queue updated locale.
+ * On Update called when process queue updated locale.
  *
  * Updated Object Contains:
  * singular: string;  // The singular key string.

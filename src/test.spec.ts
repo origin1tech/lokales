@@ -1,5 +1,7 @@
 import * as chai from 'chai';
 import * as mocha from 'mocha';
+import * as rimraf from 'rimraf';
+import * as path from 'path';
 
 const expect = chai.expect;
 const should = chai.should;
@@ -35,8 +37,8 @@ describe('Lokales', () => {
 
   it('should localize a template literal "My name is ${name} I am ${age}".', () => {
     const name = 'Joe';
-    const age = 45
-    const result = __`My name is ${name} I am ${age}.`
+    const age = 45;
+    const result = __`My name is ${name} I am ${age}.`;
     assert.equal(result, 'My name is Joe I am 45.');
   });
 
@@ -47,6 +49,10 @@ describe('Lokales', () => {
 
   it('should get the current locale.', () => {
     assert.equal(lokales.options.locale, 'es');
+  });
+
+  after((done) => {
+    rimraf(path.dirname(lokales.path), done);
   });
 
 

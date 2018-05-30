@@ -33,4 +33,4 @@ export interface ILokalesItem {
   other: string;
 }
 
-export interface ILokalesCache extends IMap<ILokalesItem | string> { };
+export interface ILokalesCache extends IMap<ILokalesItem | string> { }

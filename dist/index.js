@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var path_1 = require("path");
 var fs_1 = require("fs");
 var util_1 = require("util");
+var mkdir = require("make-dir");
 var DEFAULTS = {
     directory: './locales',
     locale: 'en',
@@ -21,34 +22,41 @@ var Lokales = /** @class */ (function () {
         this.options = this.extend({}, DEFAULTS, options);
         var optKeys = Object.keys(this.options);
         if (~optKeys.indexOf('backup'))
-            process.stderr.write('DEPRECATED: Lokales property "backup" has been deprecated, graceful exit now handled.\n');
+            console.error('DEPRECATED: Lokales property "backup" has been deprecated, graceful exit now handled.');
         process.on('exit', this.onExit.bind(this, 'exit'));
         process.on('uncaughtException', this.onExit.bind(this, 'error'));
         instance = this;
     }
     // UTILS //
     /**
-     * On Exit.
-     * Ensures graceful exit writing any in queue.
+     * Exit handler ensures graceful exit writing any in queue.
      */
     Lokales.prototype.onExit = function (type, err) {
         var _this = this;
         // Loop until queue is empty.
         var checkQueue = function () {
-            if (_this.queue.length)
+            if (_this.queue.length) {
+                _this.processQueue();
                 checkQueue();
-            if (type === 'error' && err)
-                throw err;
+            }
+            else {
+                if (type === 'error' && err)
+                    throw err;
+            }
         };
+        // Remove listeners to prevent looping.
+        process.removeListener('exit', this.onExit);
+        process.removeListener('uncaughtException', this.onExit);
         checkQueue();
     };
     /**
-     * Error
-     * : Handles module errors.
+     * Handles module errors.
      *
      * @param err the error to be handled.
      */
-    Lokales.prototype.error = function (err) {
+    Lokales.prototype.error = function (err, shouldThrow, noStack) {
+        if (shouldThrow === void 0) { shouldThrow = true; }
+        if (noStack === void 0) { noStack = false; }
         var errorHandler = this.options.onError;
         if (!(err instanceof Error)) {
             var msg = err;
@@ -59,12 +67,14 @@ var Lokales = /** @class */ (function () {
             errorHandler(err);
         }
         else {
-            throw err;
+            var error = noStack ? err.message : err;
+            if (shouldThrow)
+                throw error;
+            console.error(error);
         }
     };
     /**
-     * Keys
-     * : Gets keys for an object.
+     * Keys gets keys for an object.
      *
      * @param obj the object to get keys for.
      */
@@ -74,8 +84,7 @@ var Lokales = /** @class */ (function () {
         return Object.keys(obj);
     };
     /**
-     * Is Value
-     * : Ensures the provided argument is not undefined, NaN, Infinity etc.
+     * Is Value ensures the provided argument is not undefined, NaN, Infinity etc.
      *
      * @param val the value to inspect.
      */
@@ -84,8 +93,7 @@ var Lokales = /** @class */ (function () {
             (val !== null));
     };
     /**
-     * Is Plain Object
-     * : Checks if is plain object.
+     * Is Plain Object checks if is plain object.
      *
      * @param val the value to inspect.
      */
@@ -93,8 +101,7 @@ var Lokales = /** @class */ (function () {
         return val && val.constructor && val.constructor === {}.constructor;
     };
     /**
-     * Is Number
-     * : Checks if value is a number.
+     * Is Number cecks if value is a number.
      *
      * @param val the value to be checked.
      */
@@ -103,8 +110,7 @@ var Lokales = /** @class */ (function () {
             !isNaN(val));
     };
     /**
-     * Extend
-     * : Minimalistc extend just suits purpose here.
+     * Minimalistc extend just suits purpose here.
      *
      * @param dest the destination object.
      * @param src the source object.
@@ -118,43 +124,22 @@ var Lokales = /** @class */ (function () {
     };
     // FILE SYSTEM //
     /**
-     * Path Exists
-     * : Checks if a file or directory exists.
+     * Resolve Locale resolves the locale or fallback path.
      *
-     * @param path the path to inspect if exists.
-     * @param fn a callback function on result.
+     * @param directory the directory where locales are stored.
+     * @param locale the locale to be resovled.
      */
-    Lokales.prototype.pathExists = function (path, isDir, fn) {
-        if (typeof isDir === 'function') {
-            fn = isDir;
-            isDir = undefined;
-        }
-        try {
-            if (!fn) {
-                if (isDir)
-                    return fs_1.statSync(path).isDirectory();
-                return fs_1.statSync(path).isFile();
-            }
-            fs_1.stat(path, function (e, s) {
-                if (e) {
-                    if (!fn)
-                        return false;
-                    return fn(false);
-                }
-                if (isDir)
-                    return s.isDirectory();
-                return s.isFile();
-            });
-        }
-        catch (ex) {
-            if (!fn)
-                return false;
-            fn(false);
-        }
+    Lokales.prototype.resolveFile = function (directory, locale, fallback) {
+        fallback = fallback || this.options.localeFallback;
+        var path = path_1.resolve(directory, locale + ".json");
+        var parsed = path_1.parse(path);
+        mkdir.sync(parsed.dir); // ensure the directory exists.
+        if (fallback && !fs_1.existsSync(path))
+            path = path_1.resolve(directory, fallback + ".json");
+        return path;
     };
     /**
-     * Resolve Path
-     * : Resolves the path for a locale file.
+     * Resolve the path for a locale file.
      *
      * @param locale the locale to use for resolving path.
      * @param directory an optional directory for resolving locale file.
@@ -165,58 +150,33 @@ var Lokales = /** @class */ (function () {
         return this.resolveFile(directory, locale);
     };
     /**
-     * Resolve Locale
-     * : Resolves the locale or fallback path.
-     *
-     * @param directory the directory where locales are stored.
-     * @param locale the locale to be resovled.
-     */
-    Lokales.prototype.resolveFile = function (directory, locale, fallback) {
-        fallback = fallback || this.options.localeFallback;
-        var path = path_1.resolve(directory, './', locale + ".json");
-        if (fallback && !this.pathExists(path))
-            path = path_1.resolve(directory, './', fallback + ".json");
-        var parsed = path_1.parse(path);
-        if (!this.pathExists(parsed.dir, true)) {
-            this.error("failed to load locales path " + parsed.dir + ", ensure the directory exists.");
-            return;
-        }
-        return path;
-    };
-    /**
-     * Read Locale
-     * : Reads the locale file.
+     * Reads the locale file.
      *
      * @param directory the directory for locales.
      * @param locale the active locale.
      */
     Lokales.prototype.readLocale = function (locale, directory) {
         var path = this.resolvePath(directory, locale);
+        this.path = path;
         var obj = {};
         try {
             var str = fs_1.readFileSync(path, 'utf-8');
-            // if (this.options.backup) {
-            //   this._backupQueue.push([path, str]);
-            //   // backup a copy of the locale.
-            //   this.backup(path, str);
-            // }
             obj = JSON.parse(str);
         }
         catch (ex) {
-            if (ex instanceof SyntaxError) {
+            if ((ex instanceof SyntaxError)) {
                 ex.message = "locale " + locale + " contains invalid syntax, ensure valid JSON.";
                 this.error(ex);
             }
             obj = {}; // ensure object file may not exist yet.
-            if (ex && !(ex && ex.code === 'ENOENT')) // ignore missing locale we'll create it.
+            if (ex && !(ex && ex.code === 'ENOENT')) // if missing ignore otherwise throw.
                 this.error(ex);
         }
         return obj;
     };
     // QUEUE //
     /**
-     * Write Queue
-     * : Adds options state to write queue for processing.
+     * Adds event to write queue.
      *
      * @param state the current state of options object.
      */
@@ -226,8 +186,7 @@ var Lokales = /** @class */ (function () {
             this.processQueue();
     };
     /**
-     * Process Queue
-     * : Processes queued jobs saving to file.
+     * Process queued jobs saving to file.
      */
     Lokales.prototype.processQueue = function () {
         var _this = this;
@@ -235,13 +194,13 @@ var Lokales = /** @class */ (function () {
             return;
         var updated = this.queue[0];
         var opts = updated.options;
-        var path = this.resolveFile(opts.directory, opts.locale, opts.localeFallback);
         var serialized = JSON.stringify(this.cache[opts.locale], null, 2);
+        var path = this.resolveFile(opts.directory, opts.locale, opts.localeFallback);
         if (!serialized)
             return;
         fs_1.writeFile(path, serialized, 'utf-8', function (err) {
             if (err)
-                _this.error(err); // don't exit continue queue but log error.
+                _this.error(err, false, true); // don't exit continue queue but log error.
             if (opts.onUpdate) {
                 opts.onUpdate(err, updated, _this);
             }
@@ -251,8 +210,7 @@ var Lokales = /** @class */ (function () {
         });
     };
     /**
-     * Template Literal
-     * : Allows for localizing __`some localized string ${value}`;
+     * Template Literal allows for localizing __`some localized string ${value}`;
      *
      * @param strings array of template literal strings.
      * @param values template literal args.
@@ -285,8 +243,7 @@ var Lokales = /** @class */ (function () {
     });
     // LOCALIZATION //
     /**
-     * Localize
-     * : Common method for localizing strings.
+     * Localize common method for localizing strings.
      *
      * @param singular singular string value.
      * @param plural plural string value or count.
@@ -349,8 +306,7 @@ var Lokales = /** @class */ (function () {
     };
     // API METHODS //
     /**
-     * Set Option
-     * : Sets an option or extends current options.
+     * Set an option or extends current options.
      *
      * @param key the key or options object to set.
      * @param val the value to set when key is not an object.
@@ -368,8 +324,7 @@ var Lokales = /** @class */ (function () {
         return this;
     };
     /**
-     * Get Option
-     * : Gets an option value by key.
+     * Get an option value by key.
      *
      * @param key the option key to get.
      */
@@ -377,8 +332,7 @@ var Lokales = /** @class */ (function () {
         return this.options[key] || null;
     };
     /**
-     * Key Exists
-     * : Inspects cached checking if key already exists.
+     * Key Exists inspects cached checking if key already exists.
      *
      * @param key the key to check if exists.
      * @param locale the locale to inspect for key.
@@ -391,8 +345,7 @@ var Lokales = /** @class */ (function () {
         return this.cache[locale][key];
     };
     /**
-     * Backup
-     * : Creates backup copy of file.
+     * Backup creates backup copy of locale file.
      *
      * @param src the original source path to be backed up.
      */
@@ -403,6 +356,7 @@ var Lokales = /** @class */ (function () {
         try {
             var parsed = path_1.parse(src);
             var dest = path_1.join(parsed.dir, parsed.name + '.bak' + parsed.ext);
+            mkdir.sync(dest); // ensure directory.
             fs_1.writeFileSync(dest, data, 'utf-8');
         }
         catch (ex) {
@@ -411,8 +365,7 @@ var Lokales = /** @class */ (function () {
         }
     };
     /**
-     * Purge
-     * : Purges any backup files in locales directory.
+     * Purge any backup files in locales directory.
      */
     Lokales.prototype.purge = function () {
         var _this = this;
@@ -427,6 +380,12 @@ var Lokales = /** @class */ (function () {
         });
         process.stderr.write("\nLokales successfully purged " + ctr + " file(s).\n");
     };
+    /**
+     * Localize non plurals.
+     *
+     * @param val the value to localize.
+     * @param args format arguments.
+     */
     Lokales.prototype.__ = function (val) {
         var args = [];
         for (var _i = 1; _i < arguments.length; _i++) {
@@ -436,6 +395,14 @@ var Lokales = /** @class */ (function () {
             return this.templateLiteral(val, args);
         return this.localize.apply(this, [val, null, null].concat(args));
     };
+    /**
+     * Localize plurals.
+     *
+     * @param singular the singular localized value.
+     * @param plural the pluralized valued.
+     * @param count the count for the plural value.
+     * @param args argument formatters.
+     */
     Lokales.prototype.__n = function (singular, plural, count) {
         var args = [];
         for (var _i = 3; _i < arguments.length; _i++) {

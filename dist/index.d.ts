@@ -4,105 +4,85 @@ export declare class Lokales {
     private _backedUp;
     private _exiting;
     private _backupQueue;
+    path: string;
     cache: ILokalesCache;
     queue: any[];
     options: ILokalesOptions;
     constructor(options?: ILokalesOptions);
     /**
-     * On Exit.
-     * Ensures graceful exit writing any in queue.
+     * Exit handler ensures graceful exit writing any in queue.
      */
     private onExit(type, err);
     /**
-     * Error
-     * : Handles module errors.
+     * Handles module errors.
      *
      * @param err the error to be handled.
      */
-    private error(err);
+    private error(err, shouldThrow?, noStack?);
     /**
-     * Keys
-     * : Gets keys for an object.
+     * Keys gets keys for an object.
      *
      * @param obj the object to get keys for.
      */
     private keys(obj);
     /**
-     * Is Value
-     * : Ensures the provided argument is not undefined, NaN, Infinity etc.
+     * Is Value ensures the provided argument is not undefined, NaN, Infinity etc.
      *
      * @param val the value to inspect.
      */
     private isValue(val);
     /**
-     * Is Plain Object
-     * : Checks if is plain object.
+     * Is Plain Object checks if is plain object.
      *
      * @param val the value to inspect.
      */
     private isPlainObject(val);
     /**
-     * Is Number
-     * : Checks if value is a number.
+     * Is Number cecks if value is a number.
      *
      * @param val the value to be checked.
      */
     private isNumber(val);
     /**
-     * Extend
-     * : Minimalistc extend just suits purpose here.
+     * Minimalistc extend just suits purpose here.
      *
      * @param dest the destination object.
      * @param src the source object.
      */
     private extend(dest, ...args);
     /**
-     * Path Exists
-     * : Checks if a file or directory exists.
-     *
-     * @param path the path to inspect if exists.
-     * @param fn a callback function on result.
-     */
-    private pathExists(path, isDir?, fn?);
-    /**
-     * Resolve Path
-     * : Resolves the path for a locale file.
-     *
-     * @param locale the locale to use for resolving path.
-     * @param directory an optional directory for resolving locale file.
-     */
-    private resolvePath(locale?, directory?);
-    /**
-     * Resolve Locale
-     * : Resolves the locale or fallback path.
+     * Resolve Locale resolves the locale or fallback path.
      *
      * @param directory the directory where locales are stored.
      * @param locale the locale to be resovled.
      */
     private resolveFile(directory, locale, fallback?);
     /**
-     * Read Locale
-     * : Reads the locale file.
+     * Resolve the path for a locale file.
+     *
+     * @param locale the locale to use for resolving path.
+     * @param directory an optional directory for resolving locale file.
+     */
+    private resolvePath(locale?, directory?);
+    /**
+     * Reads the locale file.
      *
      * @param directory the directory for locales.
      * @param locale the active locale.
      */
     private readLocale(locale?, directory?);
     /**
-     * Write Queue
-     * : Adds options state to write queue for processing.
+     * Adds event to write queue.
      *
      * @param state the current state of options object.
      */
     private writeQueue(updated);
     /**
-     * Process Queue
-     * : Processes queued jobs saving to file.
+     * Process queued jobs saving to file.
      */
     private processQueue();
     /**
-     * Template Literal
-     * : Allows for localizing __`some localized string ${value}`;
+     * Template Literal allows for localizing __`some localized string ${value}`;
      *
      * @param strings array of template literal strings.
      * @param values template literal args.
@@ -111,33 +91,29 @@ export declare class Lokales {
     readonly t: (val: string, ...args: any[]) => string;
     readonly tn: (singular: string, plural: string, count?: number, ...args: any[]) => string;
     /**
-     * Localize
-     * : Common method for localizing strings.
+     * Localize common method for localizing strings.
      *
      * @param singular singular string value.
      * @param plural plural string value or count.
      * @param count numeric count for pluralization.
      * @param args format args.
      */
-    private localize(singular, plural?, count?, ...args);
+    protected localize(singular: string, plural?: string, count?: number, ...args: any[]): string;
     /**
-     * Set Option
-     * : Sets an option or extends current options.
+     * Set an option or extends current options.
      *
      * @param key the key or options object to set.
      * @param val the value to set when key is not an object.
      */
     setOption(key: LokalesOptionKeys | ILokalesOptions, val: any): this;
     /**
-     * Get Option
-     * : Gets an option value by key.
+     * Get an option value by key.
      *
      * @param key the option key to get.
      */
     getOption(key: string): any;
     /**
-     * Key Exists
-     * : Inspects cached checking if key already exists.
+     * Key Exists inspects cached checking if key already exists.
      *
      * @param key the key to check if exists.
      * @param locale the locale to inspect for key.
@@ -145,17 +121,29 @@ export declare class Lokales {
      */
     keyExists(key: string, locale?: string, directory?: string): any;
     /**
-     * Backup
-     * : Creates backup copy of file.
+     * Backup creates backup copy of locale file.
      *
      * @param src the original source path to be backed up.
      */
     backup(src: string, data: string | object): void;
     /**
-     * Purge
-     * : Purges any backup files in locales directory.
+     * Purge any backup files in locales directory.
      */
     purge(): void;
+    /**
+     * Localize non plurals.
+     *
+     * @param val the value to localize.
+     * @param args format arguments.
+     */
     __(val: string, ...args: any[]): string;
+    /**
+     * Localize plurals.
+     *
+     * @param singular the singular localized value.
+     * @param plural the pluralized valued.
+     * @param count the count for the plural value.
+     * @param args argument formatters.
+     */
     __n(singular: string, plural: string, count?: number, ...args: any[]): string;
 }

@@ -2,18 +2,34 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Live Test",
+      "name": "Debug",
       "type": "node",
       "request": "launch",
-      "program": "${workspaceRoot}/node_modules/ts-node/dist/_bin.js",
-      "args": [
-        "-P",
-        "${workspaceRoot}/src/tsconfig.spec.json",
-        "${workspaceRoot}/src/test.spec.ts"
+      "program": "${workspaceFolder}/src/debug.ts",
+      "stopOnEntry": false,
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": null,
+      "runtimeArgs": [
+        "--nolazy"
       ],
-      "runtimeArgs": [],
-      "cwd": "${workspaceRoot}",
-      "protocol": "inspector"
+      "env": {
+        "DEBUG": "*",
+        "DEBUG_ONLY": "false",
+        "NODE_ENV": "development"
+      },
+      "console": "internalConsole",
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach to Process",
+      "address": "localhost",
+      "port": 5858
     }
   ]
 }
