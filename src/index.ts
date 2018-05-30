@@ -52,10 +52,10 @@ export class Lokales {
     // Loop until queue is empty.
     const checkQueue = () => {
       if (this.queue.length)
-        process.nextTick(checkQueue);
+        checkQueue();
       if (type === 'error' && err)
         throw err;
-    }
+    };
 
     checkQueue();
 

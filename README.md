@@ -1,6 +1,6 @@
 # Lokales
 
-Barebones i18n localization written in TypeScript. Similar to [y18n](https://github.com/yargs/y18n) but with a few improvements, written in TypeScript and handles errors better preventing corrupt or empty locale files. Other than that about the same.
+Barebones i18n localization written in TypeScript. Similar to [y18n](https://github.com/yargs/y18n) but with a few improvements, handles errors better preventing corrupt or empty locale files. Other than that about the same.
 
 ## NOTE
 

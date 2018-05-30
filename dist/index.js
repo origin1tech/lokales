@@ -37,7 +37,7 @@ var Lokales = /** @class */ (function () {
         // Loop until queue is empty.
         var checkQueue = function () {
             if (_this.queue.length)
-                process.nextTick(checkQueue);
+                checkQueue();
             if (type === 'error' && err)
                 throw err;
         };
@@ -222,7 +222,7 @@ var Lokales = /** @class */ (function () {
                 this.error(ex);
             }
             obj = {}; // ensure object file may not exist yet.
-            if (ex && !(ex && ex.code === 'ENOENT'))
+            if (ex && !(ex && ex.code === 'ENOENT')) // ignore missing locale we'll create it.
                 this.error(ex);
         }
         return obj;
@@ -317,12 +317,12 @@ var Lokales = /** @class */ (function () {
         var isPlural = count > 1 ? true : false;
         var supportsPlural = this.isValue(plural);
         var shouldQueue;
-        if (!cache[locale]) {
+        if (!cache[locale]) { // ensure loaded locale.
             cache[locale] = this.readLocale();
         }
         var existing = cache[locale][singular]; // value already exists.
         if (!existing && this.options.update) {
-            if (!supportsPlural) {
+            if (!supportsPlural) { // singular localization.
                 cache[locale][singular] = singular;
             }
             else {
@@ -343,13 +343,13 @@ var Lokales = /** @class */ (function () {
             shouldQueue = true;
         }
         var val = cache[locale][singular]; // default singular value.
-        if (supportsPlural) {
+        if (supportsPlural) { // supports plural
             if (isPlural)
                 val = cache[locale][singular].other; // get plural value.
             else
                 val = cache[locale][singular].one; // get singular.
         }
-        if (shouldQueue)
+        if (shouldQueue) // add write to queue to reflect changes.
             this.writeQueue({
                 singular: singular,
                 plural: plural,
@@ -400,7 +400,7 @@ var Lokales = /** @class */ (function () {
      */
     Lokales.prototype.keyExists = function (key, locale, directory) {
         locale = locale || this.options.locale;
-        if (!this.cache[locale])
+        if (!this.cache[locale]) // ensure loaded locale.
             this.cache[locale] = this.readLocale(locale, directory);
         return this.cache[locale][key];
     };
@@ -446,7 +446,7 @@ var Lokales = /** @class */ (function () {
         for (var _i = 1; _i < arguments.length; _i++) {
             args[_i - 1] = arguments[_i];
         }
-        if (Array.isArray(val))
+        if (Array.isArray(val)) // is template literal.
             return this.templateLiteral(val, args);
         return this.localize.apply(this, [val, null, null].concat(args));
     };
