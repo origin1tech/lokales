@@ -1,8 +1,7 @@
 
-import { IMap, LokalesErrorHandler, LokalesUpdateHandler, ILokalesOptions, ILokalesCache, ILokalesItem, ILokalesUpdated, LokalesOptionKeys } from './interfaces';
-import { parse, resolve, join, basename, relative } from 'path';
-import { readFileSync, writeFile, writeFileSync, stat, statSync, Stats, createReadStream, createWriteStream, readdirSync, unlinkSync, existsSync } from 'fs';
-import { spawn } from 'child_process';
+import { ILokalesOptions, ILokalesCache, ILokalesUpdated, LokalesOptionKeys } from './interfaces';
+import { parse, resolve, basename } from 'path';
+import { readFileSync, writeFile, writeFileSync, stat, statSync, readdirSync, existsSync } from 'fs';
 import { format } from 'util';
 import * as mkdir from 'make-dir';
 
@@ -20,10 +19,6 @@ const DEFAULTS = {
 let instance = null; // ensure singleton.
 
 export class Lokales {
-
-  private _backedUp: boolean;
-  private _exiting: boolean;
-  private _backupQueue: any[];
 
   path: string; // the active locale path.
   cache: ILokalesCache = {};

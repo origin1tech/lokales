@@ -1,9 +1,6 @@
 import { ILokalesOptions, ILokalesCache, LokalesOptionKeys } from './interfaces';
 export * from './interfaces';
 export declare class Lokales {
-    private _backedUp;
-    private _exiting;
-    private _backupQueue;
     path: string;
     cache: ILokalesCache;
     queue: any[];
