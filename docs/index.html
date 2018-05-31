@@ -66,6 +66,8 @@
 			<div class="tsd-panel tsd-typography">
 				<h1 id="lokales">Lokales</h1>
 				<p>Barebones i18n localization written in TypeScript. Similar to <a href="https://github.com/yargs/y18n">y18n</a> but with a few improvements, handles errors better preventing corrupt or empty locale files. Other than that about the same.</p>
+				<h2 id="new-version-1-1-x">New Version 1.1.x</h2>
+				<p>Fixed graceful exit, ensures write before exit. Fix issue where directory isn&#39;t created, refactored simplified methods. Add method &quot;sync&quot; to synchronize all locales from a primary locale. This ensures your primary locale (probably &quot;en&quot;) and it&#39;s keys exist in all other locales known on your system.</p>
 				<h2 id="quick-start">Quick Start</h2>
 				<p>Initialize using ES5 or ES6/TypeScript Imports.</p>
 				<pre><code class="lang-ts"><span class="hljs-keyword">import</span> { Lokales } <span class="hljs-keyword">from</span> <span class="hljs-string">'lokales'</span>;
@@ -113,8 +115,6 @@ lokales.__<span class="hljs-string">`My favorite color is <span class="hljs-subs
 								<tr><td>setOption</td><td>key: LokalesOptionKeys | ILokalesOptions, val: any</td><td>Sets an option by key/value or options object.</td></tr>
 								<tr><td>getOption</td><td>key: string</td><td>Gets an existing option.</td></tr>
 								<tr><td>keyExists</td><td>key: string, locale?: string, directory?: string</td><td>Checks if key exists in locale.</td></tr>
-								<tr><td>backup</td><td>src: string</td><td>Backup a locale by path.</td></tr>
-								<tr><td>purge</td><td>n/a</td><td>Purges and backup files.</td></tr>
 							</tbody>
 				</table>
 				<h2 id="advanced-usage">Advanced Usage</h2>

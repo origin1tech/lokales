@@ -456,10 +456,10 @@ export class Lokales {
    * @param val the value to localize.
    * @param args format arguments.
    */
-  __(val: string, ...args: any[]): string {
+  __(val: string | TemplateStringsArray, ...args: any[]): string {
     if (Array.isArray(val)) // is template literal.
       return this.templateLiteral(val, args);
-    return this.localize(val, null, null, ...args);
+    return this.localize(<string>val, null, null, ...args);
   }
 
   /**

@@ -88,7 +88,7 @@ export declare class Lokales {
      * @param values template literal args.
      */
     private templateLiteral(strings, values);
-    readonly t: (val: string, ...args: any[]) => string;
+    readonly t: (val: string | TemplateStringsArray, ...args: any[]) => string;
     readonly tn: (singular: string, plural: string, count?: number, ...args: any[]) => string;
     /**
      * Localize common method for localizing strings.
@@ -132,7 +132,7 @@ export declare class Lokales {
      * @param val the value to localize.
      * @param args format arguments.
      */
-    __(val: string, ...args: any[]): string;
+    __(val: string | TemplateStringsArray, ...args: any[]): string;
     /**
      * Localize plurals.
      *
