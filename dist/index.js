@@ -15,6 +15,7 @@ var DEFAULTS = {
 var instance = null; // ensure singleton.
 var Lokales = /** @class */ (function () {
     function Lokales(options) {
+        this._exiting = false;
         this.cache = {};
         this.queue = [];
         if (instance)
@@ -32,22 +33,23 @@ var Lokales = /** @class */ (function () {
      * Exit handler ensures graceful exit writing any in queue.
      */
     Lokales.prototype.onExit = function (type, err) {
-        var _this = this;
-        // Loop until queue is empty.
-        var checkQueue = function () {
-            if (_this.queue.length) {
-                _this.processQueue();
-                checkQueue();
-            }
-            else {
-                if (type === 'error' && err)
-                    throw err;
-            }
-        };
-        // Remove listeners to prevent looping.
-        process.removeListener('exit', this.onExit);
-        process.removeListener('uncaughtException', this.onExit);
-        checkQueue();
+        // Remove event listeners.
+        if (!this._exiting) {
+            process.removeListener('exit', this.onExit);
+            process.removeListener('uncaughtException', this.onExit);
+        }
+        // If queue length and not already in
+        // exit loop call processQueue.
+        if (this.queue.length && !this._exiting) {
+            this._exiting = true;
+            this.processQueue(type, err);
+        }
+        // Otherwise if an error was passed
+        // throw it otherwise exit.
+        else {
+            if (type === 'error' && err)
+                throw err;
+        }
     };
     /**
      * Handles module errors.
@@ -74,16 +76,6 @@ var Lokales = /** @class */ (function () {
         }
     };
     /**
-     * Keys gets keys for an object.
-     *
-     * @param obj the object to get keys for.
-     */
-    Lokales.prototype.keys = function (obj) {
-        if (!this.isPlainObject(obj))
-            return [];
-        return Object.keys(obj);
-    };
-    /**
      * Is Value ensures the provided argument is not undefined, NaN, Infinity etc.
      *
      * @param val the value to inspect.
@@ -99,15 +91,6 @@ var Lokales = /** @class */ (function () {
      */
     Lokales.prototype.isPlainObject = function (val) {
         return val && val.constructor && val.constructor === {}.constructor;
-    };
-    /**
-     * Is Number cecks if value is a number.
-     *
-     * @param val the value to be checked.
-     */
-    Lokales.prototype.isNumber = function (val) {
-        return (typeof val === 'number' &&
-            !isNaN(val));
     };
     /**
      * Minimalistc extend just suits purpose here.
@@ -161,6 +144,8 @@ var Lokales = /** @class */ (function () {
         var obj = {};
         try {
             var str = fs_1.readFileSync(path, 'utf-8');
+            if (!str)
+                return obj;
             obj = JSON.parse(str);
         }
         catch (ex) {
@@ -193,10 +178,13 @@ var Lokales = /** @class */ (function () {
     /**
      * Process queued jobs saving to file.
      */
-    Lokales.prototype.processQueue = function () {
+    Lokales.prototype.processQueue = function (type, err) {
         var _this = this;
-        if (!this.queue.length)
+        if (!this.queue.length) {
+            this._exiting = false;
+            this.onExit(type, err);
             return;
+        }
         var updated = this.queue[0];
         var opts = updated.options;
         var serialized = JSON.stringify(this.cache[opts.locale], null, 2);

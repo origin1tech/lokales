@@ -20,6 +20,8 @@ let instance = null; // ensure singleton.
 
 export class Lokales {
 
+  private _exiting: boolean = false;
+
   path: string; // the active locale path.
   cache: ILokalesCache = {};
   queue: any[] = [];
@@ -44,23 +46,25 @@ export class Lokales {
    */
   private onExit(type, err) {
 
-    // Loop until queue is empty.
-    const checkQueue = () => {
-      if (this.queue.length) {
-        this.processQueue();
-        checkQueue();
-      }
-      else {
-        if (type === 'error' && err)
-          throw err;
-      }
-    };
+    // Remove event listeners.
+    if (!this._exiting) {
+      process.removeListener('exit', this.onExit);
+      process.removeListener('uncaughtException', this.onExit);
+    }
 
-    // Remove listeners to prevent looping.
-    process.removeListener('exit', this.onExit);
-    process.removeListener('uncaughtException', this.onExit);
+    // If queue length and not already in
+    // exit loop call processQueue.
+    if (this.queue.length && !this._exiting) {
+      this._exiting = true;
+      this.processQueue(type, err);
+    }
 
-    checkQueue();
+    // Otherwise if an error was passed
+    // throw it otherwise exit.
+    else {
+      if (type === 'error' && err)
+        throw err;
+    }
 
   }
 
@@ -88,17 +92,6 @@ export class Lokales {
   }
 
   /**
-   * Keys gets keys for an object.
-   *
-   * @param obj the object to get keys for.
-   */
-  private keys(obj: any) {
-    if (!this.isPlainObject(obj))
-      return [];
-    return Object.keys(obj);
-  }
-
-  /**
    * Is Value ensures the provided argument is not undefined, NaN, Infinity etc.
    *
    * @param val the value to inspect.
@@ -117,18 +110,6 @@ export class Lokales {
    */
   private isPlainObject(val: any) {
     return val && val.constructor && val.constructor === {}.constructor;
-  }
-
-  /**
-   * Is Number cecks if value is a number.
-   *
-   * @param val the value to be checked.
-   */
-  private isNumber(val: any) {
-    return (
-      typeof val === 'number' &&
-      !isNaN(val)
-    );
   }
 
   /**
@@ -185,6 +166,8 @@ export class Lokales {
 
     try {
       const str = readFileSync(path, 'utf-8');
+      if (!str)
+        return obj;
       obj = JSON.parse(str);
     }
 
@@ -227,10 +210,13 @@ export class Lokales {
   /**
    * Process queued jobs saving to file.
    */
-  private processQueue() {
+  private processQueue(type?: string, err?: any) {
 
-    if (!this.queue.length)
+    if (!this.queue.length) {
+      this._exiting = false;
+      this.onExit(type, err);
       return;
+    }
 
     const updated = this.queue[0];
     const opts: ILokalesOptions = updated.options;

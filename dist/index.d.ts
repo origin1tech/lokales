@@ -1,6 +1,7 @@
 import { ILokalesOptions, ILokalesCache, LokalesOptionKeys } from './interfaces';
 export * from './interfaces';
 export declare class Lokales {
+    private _exiting;
     path: string;
     cache: ILokalesCache;
     queue: any[];
@@ -17,12 +18,6 @@ export declare class Lokales {
      */
     private error(err, shouldThrow?, noStack?);
     /**
-     * Keys gets keys for an object.
-     *
-     * @param obj the object to get keys for.
-     */
-    private keys(obj);
-    /**
      * Is Value ensures the provided argument is not undefined, NaN, Infinity etc.
      *
      * @param val the value to inspect.
@@ -34,12 +29,6 @@ export declare class Lokales {
      * @param val the value to inspect.
      */
     private isPlainObject(val);
-    /**
-     * Is Number cecks if value is a number.
-     *
-     * @param val the value to be checked.
-     */
-    private isNumber(val);
     /**
      * Minimalistc extend just suits purpose here.
      *
@@ -77,7 +66,7 @@ export declare class Lokales {
     /**
      * Process queued jobs saving to file.
      */
-    private processQueue();
+    private processQueue(type?, err?);
     /**
      * Template Literal allows for localizing __`some localized string ${value}`;
      *
