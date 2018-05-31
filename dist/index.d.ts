@@ -53,10 +53,10 @@ export declare class Lokales {
     /**
      * Resolve Locale resolves the locale or fallback path.
      *
-     * @param directory the directory where locales are stored.
      * @param locale the locale to be resovled.
+     * @param directory the directory where locales are stored.
      */
-    private resolveFile(directory, locale, fallback?);
+    private resolveFile(locale, directory, fallback?);
     /**
      * Resolve the path for a locale file.
      *
@@ -67,10 +67,10 @@ export declare class Lokales {
     /**
      * Reads the locale file.
      *
-     * @param directory the directory for locales.
      * @param locale the active locale.
+     * @param directory the directory for locales.
      */
-    private readLocale(locale?, directory?);
+    private readLocale(locale?, directory?, ignoreErrors?);
     /**
      * Adds event to write queue.
      *
@@ -121,15 +121,11 @@ export declare class Lokales {
      */
     keyExists(key: string, locale?: string, directory?: string): any;
     /**
-     * Backup creates backup copy of locale file.
+     * Sync ensures secondary locales contain same keys of primary from.
      *
-     * @param src the original source path to be backed up.
+     * @param from the locale to sync from default "en".
      */
-    backup(src: string, data: string | object): void;
-    /**
-     * Purge any backup files in locales directory.
-     */
-    purge(): void;
+    sync(from?: string): void;
     /**
      * Localize non plurals.
      *

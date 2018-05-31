@@ -2,6 +2,10 @@
 
 Barebones i18n localization written in TypeScript. Similar to [y18n](https://github.com/yargs/y18n) but with a few improvements, handles errors better preventing corrupt or empty locale files. Other than that about the same.
 
+## New Version 1.1.x
+
+Fixed graceful exit, ensures write before exit. Fix issue where directory isn't created, refactored simplified methods. Add method "sync" to synchronize all locales from a primary locale. This ensures your primary locale (probably "en") and it's keys exist in all other locales known on your system.
+
 ## Quick Start
 
 Initialize using ES5 or ES6/TypeScript Imports.
@@ -73,8 +77,6 @@ Simple API for plural or singular localization along with get and set for option
     <tr><td>setOption</td><td>key: LokalesOptionKeys | ILokalesOptions, val: any</td><td>Sets an option by key/value or options object.</td></tr>
     <tr><td>getOption</td><td>key: string</td><td>Gets an existing option.</td></tr>
     <tr><td>keyExists</td><td>key: string, locale?: string, directory?: string</td><td>Checks if key exists in locale.</td></tr>
-    <tr><td>backup</td><td>src: string</td><td>Backup a locale by path.</td></tr>
-    <tr><td>purge</td><td>n/a</td><td>Purges and backup files.</td></tr>
   </tbody>
 </table>
 

@@ -52,7 +52,8 @@ describe('Lokales', () => {
   });
 
   after((done) => {
-    rimraf(path.dirname(lokales.path), done);
+    done();
+    //  rimraf(path.dirname(lokales.path), done);
   });
 
 

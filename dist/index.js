@@ -126,10 +126,10 @@ var Lokales = /** @class */ (function () {
     /**
      * Resolve Locale resolves the locale or fallback path.
      *
-     * @param directory the directory where locales are stored.
      * @param locale the locale to be resovled.
+     * @param directory the directory where locales are stored.
      */
-    Lokales.prototype.resolveFile = function (directory, locale, fallback) {
+    Lokales.prototype.resolveFile = function (locale, directory, fallback) {
         fallback = fallback || this.options.localeFallback;
         var path = path_1.resolve(directory, locale + ".json");
         var parsed = path_1.parse(path);
@@ -147,16 +147,16 @@ var Lokales = /** @class */ (function () {
     Lokales.prototype.resolvePath = function (locale, directory) {
         directory = directory || this.options.directory;
         locale = locale || this.options.locale;
-        return this.resolveFile(directory, locale);
+        return this.resolveFile(locale, directory);
     };
     /**
      * Reads the locale file.
      *
-     * @param directory the directory for locales.
      * @param locale the active locale.
+     * @param directory the directory for locales.
      */
-    Lokales.prototype.readLocale = function (locale, directory) {
-        var path = this.resolvePath(directory, locale);
+    Lokales.prototype.readLocale = function (locale, directory, ignoreErrors) {
+        var path = this.resolvePath(locale, directory);
         this.path = path;
         var obj = {};
         try {
@@ -164,13 +164,18 @@ var Lokales = /** @class */ (function () {
             obj = JSON.parse(str);
         }
         catch (ex) {
-            if ((ex instanceof SyntaxError)) {
-                ex.message = "locale " + locale + " contains invalid syntax, ensure valid JSON.";
-                this.error(ex);
+            if (!ignoreErrors) {
+                if ((ex instanceof SyntaxError)) {
+                    ex.message = "locale " + locale + " contains invalid syntax, ensure valid JSON.";
+                    this.error(ex);
+                }
+                obj = {}; // ensure object file may not exist yet.
+                if (ex && !(ex && ex.code === 'ENOENT')) // if missing ignore otherwise throw.
+                    this.error(ex);
             }
-            obj = {}; // ensure object file may not exist yet.
-            if (ex && !(ex && ex.code === 'ENOENT')) // if missing ignore otherwise throw.
-                this.error(ex);
+            else {
+                console.error("Failed to sync locale >> " + ex.message + ".");
+            }
         }
         return obj;
     };
@@ -195,7 +200,7 @@ var Lokales = /** @class */ (function () {
         var updated = this.queue[0];
         var opts = updated.options;
         var serialized = JSON.stringify(this.cache[opts.locale], null, 2);
-        var path = this.resolveFile(opts.directory, opts.locale, opts.localeFallback);
+        var path = this.resolveFile(opts.locale, opts.directory, opts.localeFallback);
         if (!serialized)
             return;
         fs_1.writeFile(path, serialized, 'utf-8', function (err) {
@@ -345,40 +350,33 @@ var Lokales = /** @class */ (function () {
         return this.cache[locale][key];
     };
     /**
-     * Backup creates backup copy of locale file.
+     * Sync ensures secondary locales contain same keys of primary from.
      *
-     * @param src the original source path to be backed up.
+     * @param from the locale to sync from default "en".
      */
-    Lokales.prototype.backup = function (src, data) {
-        src = src || this.resolvePath();
-        if (this.isPlainObject(data))
-            data = JSON.stringify(data);
-        try {
-            var parsed = path_1.parse(src);
-            var dest = path_1.join(parsed.dir, parsed.name + '.bak' + parsed.ext);
-            mkdir.sync(dest); // ensure directory.
-            fs_1.writeFileSync(dest, data, 'utf-8');
-        }
-        catch (ex) {
-            this._backedUp = false;
-            this.error(ex);
-        }
-    };
-    /**
-     * Purge any backup files in locales directory.
-     */
-    Lokales.prototype.purge = function () {
+    Lokales.prototype.sync = function (from) {
         var _this = this;
+        if (from === void 0) { from = 'en'; }
+        from = from.replace(/\.json$/, '.json').toLowerCase();
         var stats = fs_1.statSync(this.options.directory);
         var files = fs_1.readdirSync(this.options.directory, 'utf-8');
+        var fromLocale = this.readLocale(from);
         var ctr = 0;
         files.forEach(function (f, i) {
-            if (/bak\.json$/.test(f.toString())) {
-                fs_1.unlinkSync(path_1.join(_this.options.directory, f.toString()));
-                ctr++;
+            var filename = f.toString().toLowerCase();
+            var locale = path_1.basename(filename).replace(/\.json$/, '');
+            if (locale !== from) {
+                // Load the current found locale.
+                var currLocale = _this.readLocale(locale, null, true);
+                for (var k in fromLocale) {
+                    if (!currLocale[k])
+                        currLocale[k] = fromLocale[k];
+                }
+                // Write the file.
+                fs_1.writeFileSync(path_1.resolve(_this.options.directory, locale + ".json"), JSON.stringify(currLocale, null, 2));
+                console.error("Synchronized locales: " + from + " >> " + locale);
             }
         });
-        process.stderr.write("\nLokales successfully purged " + ctr + " file(s).\n");
     };
     /**
      * Localize non plurals.
