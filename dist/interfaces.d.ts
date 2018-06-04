@@ -1,5 +1,5 @@
 import { Lokales } from './';
-export declare type LokalesErrorHandler = (err: Error) => void;
+export declare type LokalesErrorHandler = (err?: Error) => void;
 export declare type LokalesUpdateHandler = (err?: Error, updated?: ILokalesUpdated, lokales?: Lokales) => void;
 export declare type LokalesOptionKeys = 'directory' | 'locale' | 'localeFallback' | 'update' | 'onUpdate' | 'onError';
 export interface IMap<T> {
@@ -12,6 +12,7 @@ export interface ILokalesOptions {
     update?: boolean;
     onUpdate?: LokalesUpdateHandler;
     onError?: LokalesErrorHandler;
+    onExitEmpty?: LokalesErrorHandler;
     backup?: boolean;
 }
 export interface ILokalesUpdated {

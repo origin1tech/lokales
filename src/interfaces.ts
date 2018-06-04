@@ -1,7 +1,7 @@
 
 import { Lokales } from './';
 
-export type LokalesErrorHandler = (err: Error) => void;
+export type LokalesErrorHandler = (err?: Error) => void;
 export type LokalesUpdateHandler = (err?: Error, updated?: ILokalesUpdated, lokales?: Lokales) => void;
 export type LokalesOptionKeys = 'directory' | 'locale' | 'localeFallback' | 'update' | 'onUpdate' | 'onError';
 
@@ -16,6 +16,7 @@ export interface ILokalesOptions {
   update?: boolean;
   onUpdate?: LokalesUpdateHandler;
   onError?: LokalesErrorHandler;
+  onExitEmpty?: LokalesErrorHandler;
   // Deprecated //
   backup?: boolean;
 }

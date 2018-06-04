@@ -10,7 +10,8 @@ var DEFAULTS = {
     localeFallback: 'en',
     update: true,
     onUpdate: undefined,
-    onError: undefined // called on write queue error.
+    onError: undefined,
+    onExitEmpty: undefined // called on exit after queue is emptied.
 };
 var instance = null; // ensure singleton.
 var Lokales = /** @class */ (function () {
@@ -47,8 +48,11 @@ var Lokales = /** @class */ (function () {
         // Otherwise if an error was passed
         // throw it otherwise exit.
         else {
+            // queue is empty call user callback.
+            if (this.options.onExitEmpty)
+                this.options.onExitEmpty(err);
             if (type === 'error' && err)
-                throw err;
+                this.error(err);
         }
     };
     /**
@@ -56,23 +60,14 @@ var Lokales = /** @class */ (function () {
      *
      * @param err the error to be handled.
      */
-    Lokales.prototype.error = function (err, shouldThrow, noStack) {
-        if (shouldThrow === void 0) { shouldThrow = true; }
-        if (noStack === void 0) { noStack = false; }
+    Lokales.prototype.error = function (err) {
         var errorHandler = this.options.onError;
-        if (!(err instanceof Error)) {
-            var msg = err;
-            err = new Error(err);
-            err.message = msg;
-        }
         if (errorHandler) {
+            err = !(err instanceof Error) ? new Error(err) : err;
             errorHandler(err);
         }
         else {
-            var error = noStack ? err.message : err;
-            if (shouldThrow)
-                throw error;
-            console.error(error);
+            console.error(err);
         }
     };
     /**
@@ -137,8 +132,9 @@ var Lokales = /** @class */ (function () {
      *
      * @param locale the active locale.
      * @param directory the directory for locales.
+     * @param graceful mutes errors gracefully logs message.
      */
-    Lokales.prototype.readLocale = function (locale, directory, ignoreErrors) {
+    Lokales.prototype.readLocale = function (locale, directory, graceful) {
         var path = this.resolvePath(locale, directory);
         this.path = path;
         var obj = {};
@@ -149,17 +145,16 @@ var Lokales = /** @class */ (function () {
             obj = JSON.parse(str);
         }
         catch (ex) {
-            if (!ignoreErrors) {
-                if ((ex instanceof SyntaxError)) {
-                    ex.message = "locale " + locale + " contains invalid syntax, ensure valid JSON.";
-                    this.error(ex);
-                }
-                obj = {}; // ensure object file may not exist yet.
-                if (ex && !(ex && ex.code === 'ENOENT')) // if missing ignore otherwise throw.
-                    this.error(ex);
+            obj = {}; // ensure object.
+            if (graceful) {
+                this.error(ex.message);
             }
             else {
-                console.error("Failed to sync locale >> " + ex.message + ".");
+                // If bad format or no path ignore.
+                // create empty object and or path
+                // on next read. Otherwise throw err.
+                if (ex && (!(ex instanceof SyntaxError) && ex.code !== 'ENOENT'))
+                    this.error(ex);
             }
         }
         return obj;
@@ -193,7 +188,7 @@ var Lokales = /** @class */ (function () {
             return;
         fs_1.writeFile(path, serialized, 'utf-8', function (err) {
             if (err)
-                _this.error(err, false, true); // don't exit continue queue but log error.
+                _this.error(err.message); // don't exit continue queue but log error.
             if (opts.onUpdate) {
                 opts.onUpdate(err, updated, _this);
             }
@@ -366,12 +361,6 @@ var Lokales = /** @class */ (function () {
             }
         });
     };
-    /**
-     * Localize non plurals.
-     *
-     * @param val the value to localize.
-     * @param args format arguments.
-     */
     Lokales.prototype.__ = function (val) {
         var args = [];
         for (var _i = 1; _i < arguments.length; _i++) {

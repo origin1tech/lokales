@@ -13,7 +13,8 @@ const DEFAULTS = {
   localeFallback: 'en',     // a fallback locale when active fails.
   update: true,             // when true allows updates to locale file.
   onUpdate: undefined,      // method on update called good for translating.
-  onError: undefined        // called on write queue error.
+  onError: undefined,        // called on write queue error.
+  onExitEmpty: undefined    // called on exit after queue is emptied.
 };
 
 let instance = null; // ensure singleton.
@@ -62,8 +63,14 @@ export class Lokales {
     // Otherwise if an error was passed
     // throw it otherwise exit.
     else {
+
+      // queue is empty call user callback.
+      if (this.options.onExitEmpty)
+        this.options.onExitEmpty(err);
+
       if (type === 'error' && err)
-        throw err;
+        this.error(err);
+
     }
 
   }
@@ -73,21 +80,14 @@ export class Lokales {
    *
    * @param err the error to be handled.
    */
-  private error(err: string | Error, shouldThrow: boolean = true, noStack: boolean = false) {
+  private error(err: string | Error) {
     const errorHandler = this.options.onError;
-    if (!(err instanceof Error)) {
-      const msg = err;
-      err = new Error(err);
-      err.message = msg;
-    }
     if (errorHandler) {
+      err = !(err instanceof Error) ? new Error(err) : err;
       errorHandler(err);
     }
     else {
-      const error = noStack ? err.message : err;
-      if (shouldThrow)
-        throw error;
-      console.error(error);
+      console.error(err);
     }
   }
 
@@ -157,8 +157,9 @@ export class Lokales {
    *
    * @param locale the active locale.
    * @param directory the directory for locales.
+   * @param graceful mutes errors gracefully logs message.
    */
-  private readLocale(locale?: string, directory?: string, ignoreErrors?: boolean) {
+  private readLocale(locale?: string, directory?: string, graceful?: boolean) {
 
     const path = this.resolvePath(locale, directory);
     this.path = path;
@@ -173,19 +174,19 @@ export class Lokales {
 
     catch (ex) {
 
-      if (!ignoreErrors) {
+      obj = {}; // ensure object.
 
-        if ((ex instanceof SyntaxError)) {
-          ex.message = `locale ${locale} contains invalid syntax, ensure valid JSON.`;
-          this.error(ex);
-        }
-        obj = {}; // ensure object file may not exist yet.
-        if (ex && !(ex && ex.code === 'ENOENT')) // if missing ignore otherwise throw.
-          this.error(ex);
-
+      if (graceful) {
+        this.error(ex.message);
       }
       else {
-        console.error(`Failed to sync locale >> ${ex.message}.`);
+
+        // If bad format or no path ignore.
+        // create empty object and or path
+        // on next read. Otherwise throw err.
+        if (ex && (!(ex instanceof SyntaxError) && ex.code !== 'ENOENT'))
+          this.error(ex);
+
       }
 
     }
@@ -228,7 +229,7 @@ export class Lokales {
 
     writeFile(path, serialized, 'utf-8', (err) => {
       if (err)
-        this.error(err, false, true); // don't exit continue queue but log error.
+        this.error(err.message); // don't exit continue queue but log error.
       if (opts.onUpdate) {
         opts.onUpdate(err, updated, this);
       }
@@ -432,11 +433,21 @@ export class Lokales {
   }
 
   /**
-   * Localize non plurals.
+   * Localize non plurals template strings.
    *
    * @param val the value to localize.
    * @param args format arguments.
    */
+  __(val: TemplateStringsArray, ...args: any[]): string;
+
+  /**
+   * Localize non plural string.
+   *
+   * @param val the value to localize.
+   * @param args format arguments.
+   */
+  __(val: string, ...args: any[]): string;
+
   __(val: string | TemplateStringsArray, ...args: any[]): string {
     if (Array.isArray(val)) // is template literal.
       return this.templateLiteral(val, args);

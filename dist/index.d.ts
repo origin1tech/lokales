@@ -16,7 +16,7 @@ export declare class Lokales {
      *
      * @param err the error to be handled.
      */
-    private error(err, shouldThrow?, noStack?);
+    private error(err);
     /**
      * Is Value ensures the provided argument is not undefined, NaN, Infinity etc.
      *
@@ -55,8 +55,9 @@ export declare class Lokales {
      *
      * @param locale the active locale.
      * @param directory the directory for locales.
+     * @param graceful mutes errors gracefully logs message.
      */
-    private readLocale(locale?, directory?, ignoreErrors?);
+    private readLocale(locale?, directory?, graceful?);
     /**
      * Adds event to write queue.
      *
@@ -74,7 +75,10 @@ export declare class Lokales {
      * @param values template literal args.
      */
     private templateLiteral(strings, values);
-    readonly t: (val: string | TemplateStringsArray, ...args: any[]) => string;
+    readonly t: {
+        (val: TemplateStringsArray, ...args: any[]): string;
+        (val: string, ...args: any[]): string;
+    };
     readonly tn: (singular: string, plural: string, count?: number, ...args: any[]) => string;
     /**
      * Localize common method for localizing strings.
@@ -113,12 +117,19 @@ export declare class Lokales {
      */
     sync(from?: string): void;
     /**
-     * Localize non plurals.
+     * Localize non plurals template strings.
      *
      * @param val the value to localize.
      * @param args format arguments.
      */
-    __(val: string | TemplateStringsArray, ...args: any[]): string;
+    __(val: TemplateStringsArray, ...args: any[]): string;
+    /**
+     * Localize non plural string.
+     *
+     * @param val the value to localize.
+     * @param args format arguments.
+     */
+    __(val: string, ...args: any[]): string;
     /**
      * Localize plurals.
      *
