@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var path_1 = require("path");
-var fs_1 = require("fs");
-var util_1 = require("util");
-var mkdir = require("make-dir");
-var DEFAULTS = {
+const path_1 = require("path");
+const fs_1 = require("fs");
+const util_1 = require("util");
+const mkdir = require("make-dir");
+const DEFAULTS = {
     directory: './locales',
     locale: 'en',
     localeFallback: 'en',
@@ -13,16 +13,16 @@ var DEFAULTS = {
     onError: undefined,
     onExitEmpty: undefined // called on exit after queue is emptied.
 };
-var instance = null; // ensure singleton.
-var Lokales = /** @class */ (function () {
-    function Lokales(options) {
+let instance = null; // ensure singleton.
+class Lokales {
+    constructor(options) {
         this._exiting = false;
         this.cache = {};
         this.queue = [];
         if (instance)
             return instance;
         this.options = this.extend({}, DEFAULTS, options);
-        var optKeys = Object.keys(this.options);
+        const optKeys = Object.keys(this.options);
         if (~optKeys.indexOf('backup'))
             console.error('DEPRECATED: Lokales property "backup" has been deprecated, graceful exit now handled.');
         process.on('exit', this.onExit.bind(this, 'exit'));
@@ -33,7 +33,7 @@ var Lokales = /** @class */ (function () {
     /**
      * Exit handler ensures graceful exit writing any in queue.
      */
-    Lokales.prototype.onExit = function (type, err) {
+    onExit(type, err) {
         // Remove event listeners.
         if (!this._exiting) {
             process.removeListener('exit', this.onExit);
@@ -48,20 +48,24 @@ var Lokales = /** @class */ (function () {
         // Otherwise if an error was passed
         // throw it otherwise exit.
         else {
-            // queue is empty call user callback.
-            if (this.options.onExitEmpty)
-                this.options.onExitEmpty(err);
-            if (type === 'error' && err)
-                this.error(err);
+            // Write backup copy if cache exists.
+            const backup = this.resolveFile('_backup');
+            this.writeFile('', JSON.stringify(this._cache || ''), () => {
+                // queue is empty call user callback.
+                if (this.options.onExitEmpty)
+                    this.options.onExitEmpty(err);
+                if (type === 'error' && err)
+                    this.error(err);
+            });
         }
-    };
+    }
     /**
      * Handles module errors.
      *
      * @param err the error to be handled.
      */
-    Lokales.prototype.error = function (err) {
-        var errorHandler = this.options.onError;
+    error(err) {
+        const errorHandler = this.options.onError;
         if (errorHandler) {
             err = !(err instanceof Error) ? new Error(err) : err;
             errorHandler(err);
@@ -69,37 +73,33 @@ var Lokales = /** @class */ (function () {
         else {
             console.error(err);
         }
-    };
+    }
     /**
      * Is Value ensures the provided argument is not undefined, NaN, Infinity etc.
      *
      * @param val the value to inspect.
      */
-    Lokales.prototype.isValue = function (val) {
+    isValue(val) {
         return ((typeof val !== 'undefined') &&
             (val !== null));
-    };
+    }
     /**
      * Is Plain Object checks if is plain object.
      *
      * @param val the value to inspect.
      */
-    Lokales.prototype.isPlainObject = function (val) {
+    isPlainObject(val) {
         return val && val.constructor && val.constructor === {}.constructor;
-    };
+    }
     /**
      * Minimalistc extend just suits purpose here.
      *
      * @param dest the destination object.
      * @param src the source object.
      */
-    Lokales.prototype.extend = function (dest) {
-        var args = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            args[_i - 1] = arguments[_i];
-        }
-        return Object.assign.apply(Object, [dest].concat(args));
-    };
+    extend(dest, ...args) {
+        return Object.assign(dest, ...args);
+    }
     // FILE SYSTEM //
     /**
      * Resolve Locale resolves the locale or fallback path.
@@ -107,26 +107,28 @@ var Lokales = /** @class */ (function () {
      * @param locale the locale to be resovled.
      * @param directory the directory where locales are stored.
      */
-    Lokales.prototype.resolveFile = function (locale, directory, fallback) {
+    resolveFile(locale, directory, fallback) {
         fallback = fallback || this.options.localeFallback;
-        var path = path_1.resolve(directory, locale + ".json");
-        var parsed = path_1.parse(path);
+        directory = directory || this.options.directory;
+        let path = path_1.resolve(directory, `${locale}.json`);
+        const parsed = path_1.parse(path);
         mkdir.sync(parsed.dir); // ensure the directory exists.
         if (fallback && !fs_1.existsSync(path))
-            path = path_1.resolve(directory, fallback + ".json");
+            path = path_1.resolve(directory, `${fallback}.json`);
         return path;
-    };
+    }
     /**
      * Resolve the path for a locale file.
      *
      * @param locale the locale to use for resolving path.
      * @param directory an optional directory for resolving locale file.
      */
-    Lokales.prototype.resolvePath = function (locale, directory) {
+    resolvePath(locale, directory) {
         directory = directory || this.options.directory;
         locale = locale || this.options.locale;
         return this.resolveFile(locale, directory);
-    };
+    }
+    // https://hangouts.google.com/hangouts/_/stackbuilders.com/dremachecarey?authuser=0
     /**
      * Reads the locale file.
      *
@@ -134,12 +136,12 @@ var Lokales = /** @class */ (function () {
      * @param directory the directory for locales.
      * @param graceful mutes errors gracefully logs message.
      */
-    Lokales.prototype.readLocale = function (locale, directory, graceful) {
-        var path = this.resolvePath(locale, directory);
+    readLocale(locale, directory, graceful) {
+        const path = this.resolvePath(locale, directory);
         this.path = path;
-        var obj = {};
+        let obj = {};
         try {
-            var str = fs_1.readFileSync(path, 'utf-8');
+            const str = fs_1.readFileSync(path, 'utf-8');
             if (!str)
                 return obj;
             obj = JSON.parse(str);
@@ -157,78 +159,81 @@ var Lokales = /** @class */ (function () {
                     this.error(ex);
             }
         }
+        this._cache = obj;
         return obj;
-    };
+    }
     // QUEUE //
+    writeFile(path, data, updated, fn) {
+        if (typeof updated === 'function') {
+            fn = updated;
+            updated = undefined;
+        }
+        if (!path || !data)
+            return;
+        fs_1.writeFile(path, data, 'utf-8', (err) => {
+            if (this.options.onUpdate)
+                this.options.onUpdate(err, updated, this);
+            if (err)
+                this.error(err.message);
+            this.queue.shift();
+            if (this.queue.length > 0)
+                this.processQueue();
+            // Call callback if exists.
+            if (fn)
+                fn();
+        });
+    }
     /**
      * Adds event to write queue.
      *
      * @param state the current state of options object.
      */
-    Lokales.prototype.writeQueue = function (updated) {
+    writeQueue(updated) {
         this.queue.push(updated);
         if (this.queue.length === 1)
             this.processQueue();
-    };
+    }
     /**
      * Process queued jobs saving to file.
      */
-    Lokales.prototype.processQueue = function (type, err) {
-        var _this = this;
+    processQueue(type, err) {
         if (!this.queue.length) {
             this._exiting = false;
             this.onExit(type, err);
             return;
         }
-        var updated = this.queue[0];
-        var opts = updated.options;
-        var serialized = JSON.stringify(this.cache[opts.locale], null, 2);
-        var path = this.resolveFile(opts.locale, opts.directory, opts.localeFallback);
+        const updated = this.queue[0];
+        const opts = updated.options;
+        const serialized = JSON.stringify(this.cache[opts.locale], null, 2);
+        const path = this.resolveFile(opts.locale, opts.directory, opts.localeFallback);
         if (!serialized)
             return;
-        fs_1.writeFile(path, serialized, 'utf-8', function (err) {
-            if (err)
-                _this.error(err.message); // don't exit continue queue but log error.
-            if (opts.onUpdate) {
-                opts.onUpdate(err, updated, _this);
-            }
-            _this.queue.shift();
-            if (_this.queue.length > 0)
-                _this.processQueue();
-        });
-    };
+        this.writeFile(path, serialized, updated);
+    }
     /**
      * Template Literal allows for localizing __`some localized string ${value}`;
      *
      * @param strings array of template literal strings.
      * @param values template literal args.
      */
-    Lokales.prototype.templateLiteral = function (strings, values) {
-        var str = '';
-        strings.forEach(function (el, i) {
-            var arg = values[i];
+    templateLiteral(strings, values) {
+        let str = '';
+        strings.forEach((el, i) => {
+            const arg = values[i];
             str += el;
             if (typeof arg !== 'undefined') {
                 str += '%s';
             }
         });
-        return this.__.apply(this, [str].concat(values));
-    };
-    Object.defineProperty(Lokales.prototype, "t", {
-        // GETTERS //
-        get: function () {
-            return this.__;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Lokales.prototype, "tn", {
-        get: function () {
-            return this.__n;
-        },
-        enumerable: true,
-        configurable: true
-    });
+        return this.__(str, ...values);
+    }
+    // GETTERS //
+    get t() {
+        return this.__;
+    }
+    get tn() {
+        return this.__n;
+    }
     // LOCALIZATION //
     /**
      * Localize common method for localizing strings.
@@ -238,20 +243,16 @@ var Lokales = /** @class */ (function () {
      * @param count numeric count for pluralization.
      * @param args format args.
      */
-    Lokales.prototype.localize = function (singular, plural, count) {
-        var args = [];
-        for (var _i = 3; _i < arguments.length; _i++) {
-            args[_i - 3] = arguments[_i];
-        }
-        var cache = this.cache;
-        var locale = this.options.locale;
-        var isPlural = count > 1 ? true : false;
-        var supportsPlural = this.isValue(plural);
-        var shouldQueue;
+    localize(singular, plural, count, ...args) {
+        const cache = this.cache;
+        const locale = this.options.locale;
+        const isPlural = count > 1 ? true : false;
+        const supportsPlural = this.isValue(plural);
+        let shouldQueue;
         if (!cache[locale]) { // ensure loaded locale.
             cache[locale] = this.readLocale();
         }
-        var existing = cache[locale][singular]; // value already exists.
+        const existing = cache[locale][singular]; // value already exists.
         if (!existing && this.options.update) {
             if (!supportsPlural) { // singular localization.
                 cache[locale][singular] = singular;
@@ -273,7 +274,7 @@ var Lokales = /** @class */ (function () {
             };
             shouldQueue = true;
         }
-        var val = cache[locale][singular]; // default singular value.
+        let val = cache[locale][singular]; // default singular value.
         if (supportsPlural) { // supports plural
             if (isPlural)
                 val = cache[locale][singular].other; // get plural value.
@@ -290,8 +291,8 @@ var Lokales = /** @class */ (function () {
             });
         if (~val.indexOf('%d'))
             args.push(count);
-        return util_1.format.apply(void 0, [val].concat(args));
-    };
+        return util_1.format(val, ...args);
+    }
     // API METHODS //
     /**
      * Set an option or extends current options.
@@ -299,9 +300,9 @@ var Lokales = /** @class */ (function () {
      * @param key the key or options object to set.
      * @param val the value to set when key is not an object.
      */
-    Lokales.prototype.setOption = function (key, val) {
-        var isObj = this.isPlainObject(key);
-        var obj = key;
+    setOption(key, val) {
+        const isObj = this.isPlainObject(key);
+        let obj = key;
         if (!isObj && !this.isValue(val))
             return;
         if (!isObj) {
@@ -310,15 +311,15 @@ var Lokales = /** @class */ (function () {
         }
         this.extend(this.options, obj);
         return this;
-    };
+    }
     /**
      * Get an option value by key.
      *
      * @param key the option key to get.
      */
-    Lokales.prototype.getOption = function (key) {
+    getOption(key) {
         return this.options[key] || null;
-    };
+    }
     /**
      * Key Exists inspects cached checking if key already exists.
      *
@@ -326,50 +327,44 @@ var Lokales = /** @class */ (function () {
      * @param locale the locale to inspect for key.
      * @param directory optional directory.
      */
-    Lokales.prototype.keyExists = function (key, locale, directory) {
+    keyExists(key, locale, directory) {
         locale = locale || this.options.locale;
         if (!this.cache[locale]) // ensure loaded locale.
             this.cache[locale] = this.readLocale(locale, directory);
         return this.cache[locale][key];
-    };
+    }
     /**
      * Sync ensures secondary locales contain same keys of primary from.
      *
      * @param from the locale to sync from default "en".
      */
-    Lokales.prototype.sync = function (from) {
-        var _this = this;
-        if (from === void 0) { from = 'en'; }
+    sync(from = 'en') {
         from = from.replace(/\.json$/, '.json').toLowerCase();
-        var stats = fs_1.statSync(this.options.directory);
-        var files = fs_1.readdirSync(this.options.directory, 'utf-8');
-        var fromLocale = this.readLocale(from);
-        var ctr = 0;
-        files.forEach(function (f, i) {
-            var filename = f.toString().toLowerCase();
-            var locale = path_1.basename(filename).replace(/\.json$/, '');
+        const stats = fs_1.statSync(this.options.directory);
+        const files = fs_1.readdirSync(this.options.directory, 'utf-8');
+        const fromLocale = this.readLocale(from);
+        let ctr = 0;
+        files.forEach((f, i) => {
+            const filename = f.toString().toLowerCase();
+            const locale = path_1.basename(filename).replace(/\.json$/, '');
             if (locale !== from) {
                 // Load the current found locale.
-                var currLocale = _this.readLocale(locale, null, true);
-                for (var k in fromLocale) {
+                const currLocale = this.readLocale(locale, null, true);
+                for (const k in fromLocale) {
                     if (!currLocale[k])
                         currLocale[k] = fromLocale[k];
                 }
                 // Write the file.
-                fs_1.writeFileSync(path_1.resolve(_this.options.directory, locale + ".json"), JSON.stringify(currLocale, null, 2));
-                console.error("Synchronized locales: " + from + " >> " + locale);
+                fs_1.writeFileSync(path_1.resolve(this.options.directory, `${locale}.json`), JSON.stringify(currLocale, null, 2));
+                console.error(`Synchronized locales: ${from} >> ${locale}`);
             }
         });
-    };
-    Lokales.prototype.__ = function (val) {
-        var args = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            args[_i - 1] = arguments[_i];
-        }
+    }
+    __(val, ...args) {
         if (Array.isArray(val)) // is template literal.
             return this.templateLiteral(val, args);
-        return this.localize.apply(this, [val, null, null].concat(args));
-    };
+        return this.localize(val, null, null, ...args);
+    }
     /**
      * Localize plurals.
      *
@@ -378,14 +373,9 @@ var Lokales = /** @class */ (function () {
      * @param count the count for the plural value.
      * @param args argument formatters.
      */
-    Lokales.prototype.__n = function (singular, plural, count) {
-        var args = [];
-        for (var _i = 3; _i < arguments.length; _i++) {
-            args[_i - 3] = arguments[_i];
-        }
-        return this.localize.apply(this, [singular, plural, count].concat(args));
-    };
-    return Lokales;
-}());
+    __n(singular, plural, count, ...args) {
+        return this.localize(singular, plural, count, ...args);
+    }
+}
 exports.Lokales = Lokales;
 //# sourceMappingURL=index.js.map

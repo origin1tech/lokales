@@ -2,6 +2,7 @@ import { ILokalesOptions, ILokalesCache, LokalesOptionKeys } from './interfaces'
 export * from './interfaces';
 export declare class Lokales {
     private _exiting;
+    private _cache;
     path: string;
     cache: ILokalesCache;
     queue: any[];
@@ -42,7 +43,7 @@ export declare class Lokales {
      * @param locale the locale to be resovled.
      * @param directory the directory where locales are stored.
      */
-    private resolveFile(locale, directory, fallback?);
+    private resolveFile(locale, directory?, fallback?);
     /**
      * Resolve the path for a locale file.
      *
@@ -58,6 +59,7 @@ export declare class Lokales {
      * @param graceful mutes errors gracefully logs message.
      */
     private readLocale(locale?, directory?, graceful?);
+    private writeFile(path, data, updated?, fn?);
     /**
      * Adds event to write queue.
      *

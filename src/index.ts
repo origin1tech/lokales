@@ -1,5 +1,5 @@
 
-import { ILokalesOptions, ILokalesCache, ILokalesUpdated, LokalesOptionKeys } from './interfaces';
+import { ILokalesOptions, ILokalesCache, ILokalesUpdated, LokalesOptionKeys, IMap } from './interfaces';
 import { parse, resolve, basename } from 'path';
 import { readFileSync, writeFile, writeFileSync, stat, statSync, readdirSync, existsSync } from 'fs';
 import { format } from 'util';
@@ -22,6 +22,7 @@ let instance = null; // ensure singleton.
 export class Lokales {
 
   private _exiting: boolean = false;
+  private _cache: any;
 
   path: string; // the active locale path.
   cache: ILokalesCache = {};
@@ -64,12 +65,18 @@ export class Lokales {
     // throw it otherwise exit.
     else {
 
-      // queue is empty call user callback.
-      if (this.options.onExitEmpty)
-        this.options.onExitEmpty(err);
+      // Write backup copy if cache exists.
+      const backup = this.resolveFile('_backup');
+      this.writeFile('', JSON.stringify(this._cache || ''), () => {
 
-      if (type === 'error' && err)
-        this.error(err);
+        // queue is empty call user callback.
+        if (this.options.onExitEmpty)
+          this.options.onExitEmpty(err);
+
+        if (type === 'error' && err)
+          this.error(err);
+
+      });
 
     }
 
@@ -130,8 +137,9 @@ export class Lokales {
    * @param locale the locale to be resovled.
    * @param directory the directory where locales are stored.
    */
-  private resolveFile(locale: string, directory: string, fallback?: string) {
+  private resolveFile(locale: string, directory?: string, fallback?: string) {
     fallback = fallback || this.options.localeFallback;
+    directory = directory || this.options.directory;
     let path = resolve(directory, `${locale}.json`);
     const parsed = parse(path);
     mkdir.sync(parsed.dir); // ensure the directory exists.
@@ -151,6 +159,8 @@ export class Lokales {
     locale = locale || this.options.locale;
     return this.resolveFile(locale, directory);
   }
+
+  // https://hangouts.google.com/hangouts/_/stackbuilders.com/dremachecarey?authuser=0
 
   /**
    * Reads the locale file.
@@ -191,11 +201,43 @@ export class Lokales {
 
     }
 
+    this._cache = obj;
+
     return obj;
 
   }
 
   // QUEUE //
+
+  private writeFile(path: string, data: string, updated?: IMap<any> | Function, fn?) {
+
+    if (typeof updated === 'function') {
+      fn = updated;
+      updated = undefined;
+    }
+
+    if (!path || !data)
+      return;
+
+    writeFile(path, data, 'utf-8', (err) => {
+
+      if (this.options.onUpdate)
+        this.options.onUpdate(err, <IMap<any>>updated, this);
+
+      if (err)
+        this.error(err.message);
+
+      this.queue.shift();
+
+      if (this.queue.length > 0)
+        this.processQueue();
+
+      // Call callback if exists.
+      if (fn) fn();
+
+    });
+
+  }
 
   /**
    * Adds event to write queue.
@@ -227,16 +269,7 @@ export class Lokales {
     if (!serialized)
       return;
 
-    writeFile(path, serialized, 'utf-8', (err) => {
-      if (err)
-        this.error(err.message); // don't exit continue queue but log error.
-      if (opts.onUpdate) {
-        opts.onUpdate(err, updated, this);
-      }
-      this.queue.shift();
-      if (this.queue.length > 0)
-        this.processQueue();
-    });
+    this.writeFile(path, serialized, updated);
 
   }
 
