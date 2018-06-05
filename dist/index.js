@@ -10,24 +10,18 @@ const DEFAULTS = {
     localeFallback: 'en',
     update: true,
     onUpdate: undefined,
-    onError: undefined,
-    onExitEmpty: undefined // called on exit after queue is emptied.
+    onError: undefined // called on write queue error.
 };
-let instance = null; // ensure singleton.
 class Lokales {
     constructor(options) {
         this._exiting = false;
+        this._onQueueEmpty = () => { };
         this.cache = {};
         this.queue = [];
-        if (instance)
-            return instance;
         this.options = this.extend({}, DEFAULTS, options);
         const optKeys = Object.keys(this.options);
-        if (~optKeys.indexOf('backup'))
-            console.error('DEPRECATED: Lokales property "backup" has been deprecated, graceful exit now handled.');
         process.on('exit', this.onExit.bind(this, 'exit'));
         process.on('uncaughtException', this.onExit.bind(this, 'error'));
-        instance = this;
     }
     // UTILS //
     /**
@@ -48,15 +42,9 @@ class Lokales {
         // Otherwise if an error was passed
         // throw it otherwise exit.
         else {
-            // Write backup copy if cache exists.
-            const backup = this.resolveFile('_backup');
-            this.writeFile('', JSON.stringify(this._cache || ''), () => {
-                // queue is empty call user callback.
-                if (this.options.onExitEmpty)
-                    this.options.onExitEmpty(err);
-                if (type === 'error' && err)
-                    this.error(err);
-            });
+            this._onQueueEmpty();
+            if (type === 'error' && err)
+                this.error(err);
         }
     }
     /**
@@ -159,7 +147,6 @@ class Lokales {
                     this.error(ex);
             }
         }
-        this._cache = obj;
         return obj;
     }
     // QUEUE //
@@ -294,6 +281,14 @@ class Lokales {
         return util_1.format(val, ...args);
     }
     // API METHODS //
+    /**
+     * A callback function before exit and after queue has been emptied.
+     *
+     * @param fn a callback function on queue empty and ready to exit.
+     */
+    onQueueEmpty(fn) {
+        this._onQueueEmpty = fn;
+    }
     /**
      * Set an option or extends current options.
      *

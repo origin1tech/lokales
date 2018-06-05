@@ -131,8 +131,6 @@ const actions = {
 
 };
 
-if (!actions[command])
-  log.error(`Failed to run command "${command}", the command does not exist.`);
 
 // Start the chain.
-actions[command]();
+actions[command || 'build']();

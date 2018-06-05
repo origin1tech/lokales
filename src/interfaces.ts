@@ -16,9 +16,6 @@ export interface ILokalesOptions {
   update?: boolean;
   onUpdate?: LokalesUpdateHandler;
   onError?: LokalesErrorHandler;
-  onExitEmpty?: LokalesErrorHandler;
-  // Deprecated //
-  backup?: boolean;
 }
 
 export interface ILokalesUpdated {

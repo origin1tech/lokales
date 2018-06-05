@@ -3,6 +3,7 @@ export * from './interfaces';
 export declare class Lokales {
     private _exiting;
     private _cache;
+    private _onQueueEmpty;
     path: string;
     cache: ILokalesCache;
     queue: any[];
@@ -91,6 +92,12 @@ export declare class Lokales {
      * @param args format args.
      */
     protected localize(singular: string, plural?: string, count?: number, ...args: any[]): string;
+    /**
+     * A callback function before exit and after queue has been emptied.
+     *
+     * @param fn a callback function on queue empty and ready to exit.
+     */
+    onQueueEmpty(fn: Function): void;
     /**
      * Set an option or extends current options.
      *
