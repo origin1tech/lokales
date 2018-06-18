@@ -14,7 +14,8 @@ const DEFAULTS = {
 };
 class Lokales {
     constructor(options) {
-        this._exiting = false;
+        // private _cache: any;
+        this._canExit = false;
         this._onQueueEmpty = () => { };
         this.cache = {};
         this.queue = [];
@@ -28,22 +29,23 @@ class Lokales {
      * Exit handler ensures graceful exit writing any in queue.
      */
     onExit(type, err) {
+        if (this._canExit)
+            return;
+        this._canExit = true;
         // Remove event listeners.
-        if (!this._exiting) {
-            process.removeListener('exit', this.onExit);
-            process.removeListener('uncaughtException', this.onExit);
-        }
+        process.removeListener('exit', this.onExit);
+        process.removeListener('uncaughtException', this.onExit);
         // If queue length and not already in
         // exit loop call processQueue.
-        if (this.queue.length && !this._exiting) {
-            this._exiting = true;
+        if (this.queue.length) {
+            this._canExit = false;
             this.processQueue(type, err);
         }
         // Otherwise if an error was passed
         // throw it otherwise exit.
-        else {
+        if (this._canExit) {
             this._onQueueEmpty();
-            if (type === 'error' && err)
+            if (type === 'error' && (err instanceof Error))
                 this.error(err);
         }
     }
@@ -185,7 +187,7 @@ class Lokales {
      */
     processQueue(type, err) {
         if (!this.queue.length) {
-            this._exiting = false;
+            this._canExit = true;
             this.onExit(type, err);
             return;
         }

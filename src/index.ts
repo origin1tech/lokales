@@ -18,8 +18,8 @@ const DEFAULTS = {
 
 export class Lokales {
 
-  private _exiting: boolean = false;
-  private _cache: any;
+  // private _cache: any;
+  private _canExit = false;
   private _onQueueEmpty: Function = () => { };
 
   path: string; // the active locale path.
@@ -44,24 +44,26 @@ export class Lokales {
    */
   private onExit(type, err) {
 
+    if (this._canExit) return;
+
+    this._canExit = true;
+
     // Remove event listeners.
-    if (!this._exiting) {
-      process.removeListener('exit', this.onExit);
-      process.removeListener('uncaughtException', this.onExit);
-    }
+    process.removeListener('exit', this.onExit);
+    process.removeListener('uncaughtException', this.onExit);
 
     // If queue length and not already in
     // exit loop call processQueue.
-    if (this.queue.length && !this._exiting) {
-      this._exiting = true;
+    if (this.queue.length) {
+      this._canExit = false;
       this.processQueue(type, err);
     }
 
     // Otherwise if an error was passed
     // throw it otherwise exit.
-    else {
+    if (this._canExit) {
       this._onQueueEmpty();
-      if (type === 'error' && err)
+      if (type === 'error' && (err instanceof Error))
         this.error(err);
     }
 
@@ -239,7 +241,7 @@ export class Lokales {
   private processQueue(type?: string, err?: any) {
 
     if (!this.queue.length) {
-      this._exiting = false;
+      this._canExit = true;
       this.onExit(type, err);
       return;
     }
