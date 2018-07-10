@@ -1,5 +1,5 @@
 
-import { ILokalesOptions, ILokalesCache, ILokalesUpdated, LokalesOptionKeys, IMap } from './interfaces';
+import { ILokalesOptions, ILokalesCache, ILokalesUpdated, LokalesOptionKeys, IMap, ILokalesResult } from './interfaces';
 import { parse, resolve, basename } from 'path';
 import { readFileSync, writeFile, writeFileSync, stat, statSync, readdirSync, existsSync } from 'fs';
 import { format } from 'util';
@@ -30,10 +30,7 @@ export class Lokales {
   constructor(options?: ILokalesOptions) {
 
     this.options = this.extend({}, DEFAULTS, options);
-    const optKeys = Object.keys(this.options);
-
     process.on('exit', this.onExit.bind(this, 'exit'));
-    process.on('uncaughtException', this.onExit.bind(this, 'error'));
 
   }
 
@@ -50,7 +47,6 @@ export class Lokales {
 
     // Remove event listeners.
     process.removeListener('exit', this.onExit);
-    process.removeListener('uncaughtException', this.onExit);
 
     // If queue length and not already in
     // exit loop call processQueue.
@@ -63,8 +59,6 @@ export class Lokales {
     // throw it otherwise exit.
     if (this._canExit) {
       this._onQueueEmpty();
-      if (type === 'error' && (err instanceof Error))
-        this.error(err);
     }
 
   }
@@ -264,7 +258,17 @@ export class Lokales {
    * @param strings array of template literal strings.
    * @param values template literal args.
    */
-  private templateLiteral(strings: string[], values: any[]) {
+  private templateLiteral(strings: string[], values: any[]): string;
+
+  /**
+   * Template Literal allows for localizing __`some localized string ${value}`;
+   *
+   * @param strings array of template literal strings.
+   * @param values template literal args.
+   */
+  private templateLiteral(strings: string[], values: any[], noFormat: boolean): ILokalesResult;
+
+  private templateLiteral(strings: string[], values: any[], noFormat?: boolean) {
     let str = '';
     strings.forEach((el, i) => {
       const arg = values[i];
@@ -273,6 +277,8 @@ export class Lokales {
         str += '%s';
       }
     });
+    if (noFormat)
+      return this.__x(str, ...values);
     return this.__(str, ...values);
   }
 
@@ -286,6 +292,14 @@ export class Lokales {
     return this.__n;
   }
 
+  get tx() {
+    return this.__x;
+  }
+
+  get tnx() {
+    return this.__nx;
+  }
+
   // LOCALIZATION //
 
   /**
@@ -296,7 +310,7 @@ export class Lokales {
    * @param count numeric count for pluralization.
    * @param args format args.
    */
-  protected localize(singular: string, plural?: string, count?: number, ...args: any[]) {
+  protected localize(singular: string, plural: string, count: number, ...args: any[]): ILokalesResult {
 
     const cache = this.cache;
     const locale = this.options.locale;
@@ -357,7 +371,10 @@ export class Lokales {
     if (~val.indexOf('%d'))
       args.push(count);
 
-    return format(val, ...args);
+    return {
+      val: val,
+      args: args
+    };
 
   }
 
@@ -478,6 +495,19 @@ export class Lokales {
   __(val: string | TemplateStringsArray, ...args: any[]): string {
     if (Array.isArray(val)) // is template literal.
       return this.templateLiteral(val, args);
+    const result = this.localize(<string>val, null, null, ...args);
+    return format(result.val, ...result.args);
+  }
+
+  /**
+   * Localize non plural string unformated as object.
+   *
+   * @param val the value to localize.
+   * @param args format arguments.
+   */
+  __x(val: string | TemplateStringsArray, ...args: any[]): ILokalesResult {
+    if (Array.isArray(val)) // is template literal.
+      return this.templateLiteral(val, args, true);
     return this.localize(<string>val, null, null, ...args);
   }
 
@@ -490,6 +520,19 @@ export class Lokales {
    * @param args argument formatters.
    */
   __n(singular: string, plural: string, count?: number, ...args: any[]): string {
+    const result = this.localize(singular, plural, count, ...args);
+    return format(result.val, ...result.args);
+  }
+
+  /**
+  * Localize plurals unformated as object.
+  *
+  * @param singular the singular localized value.
+  * @param plural the pluralized valued.
+  * @param count the count for the plural value.
+  * @param args argument formatters.
+  */
+  __nx(singular: string, plural: string, count?: number, ...args: any[]): ILokalesResult {
     return this.localize(singular, plural, count, ...args);
   }
 

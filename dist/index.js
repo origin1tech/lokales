@@ -20,9 +20,7 @@ class Lokales {
         this.cache = {};
         this.queue = [];
         this.options = this.extend({}, DEFAULTS, options);
-        const optKeys = Object.keys(this.options);
         process.on('exit', this.onExit.bind(this, 'exit'));
-        process.on('uncaughtException', this.onExit.bind(this, 'error'));
     }
     // UTILS //
     /**
@@ -34,7 +32,6 @@ class Lokales {
         this._canExit = true;
         // Remove event listeners.
         process.removeListener('exit', this.onExit);
-        process.removeListener('uncaughtException', this.onExit);
         // If queue length and not already in
         // exit loop call processQueue.
         if (this.queue.length) {
@@ -45,8 +42,6 @@ class Lokales {
         // throw it otherwise exit.
         if (this._canExit) {
             this._onQueueEmpty();
-            if (type === 'error' && (err instanceof Error))
-                this.error(err);
         }
     }
     /**
@@ -199,13 +194,7 @@ class Lokales {
             return;
         this.writeFile(path, serialized, updated);
     }
-    /**
-     * Template Literal allows for localizing __`some localized string ${value}`;
-     *
-     * @param strings array of template literal strings.
-     * @param values template literal args.
-     */
-    templateLiteral(strings, values) {
+    templateLiteral(strings, values, noFormat) {
         let str = '';
         strings.forEach((el, i) => {
             const arg = values[i];
@@ -214,6 +203,8 @@ class Lokales {
                 str += '%s';
             }
         });
+        if (noFormat)
+            return this.__x(str, ...values);
         return this.__(str, ...values);
     }
     // GETTERS //
@@ -222,6 +213,12 @@ class Lokales {
     }
     get tn() {
         return this.__n;
+    }
+    get tx() {
+        return this.__x;
+    }
+    get tnx() {
+        return this.__nx;
     }
     // LOCALIZATION //
     /**
@@ -280,7 +277,10 @@ class Lokales {
             });
         if (~val.indexOf('%d'))
             args.push(count);
-        return util_1.format(val, ...args);
+        return {
+            val: val,
+            args: args
+        };
     }
     // API METHODS //
     /**
@@ -360,6 +360,18 @@ class Lokales {
     __(val, ...args) {
         if (Array.isArray(val)) // is template literal.
             return this.templateLiteral(val, args);
+        const result = this.localize(val, null, null, ...args);
+        return util_1.format(result.val, ...result.args);
+    }
+    /**
+     * Localize non plural string unformated as object.
+     *
+     * @param val the value to localize.
+     * @param args format arguments.
+     */
+    __x(val, ...args) {
+        if (Array.isArray(val)) // is template literal.
+            return this.templateLiteral(val, args, true);
         return this.localize(val, null, null, ...args);
     }
     /**
@@ -371,6 +383,18 @@ class Lokales {
      * @param args argument formatters.
      */
     __n(singular, plural, count, ...args) {
+        const result = this.localize(singular, plural, count, ...args);
+        return util_1.format(result.val, ...result.args);
+    }
+    /**
+    * Localize plurals unformated as object.
+    *
+    * @param singular the singular localized value.
+    * @param plural the pluralized valued.
+    * @param count the count for the plural value.
+    * @param args argument formatters.
+    */
+    __nx(singular, plural, count, ...args) {
         return this.localize(singular, plural, count, ...args);
     }
 }

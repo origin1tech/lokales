@@ -10,6 +10,7 @@ export interface ILokalesOptions {
     locale?: string;
     localeFallback?: string;
     update?: boolean;
+    stripAnsi?: boolean;
     onUpdate?: LokalesUpdateHandler;
     onError?: LokalesErrorHandler;
 }
@@ -23,6 +24,10 @@ export interface ILokalesUpdated {
 export interface ILokalesItem {
     one: string;
     other: string;
+}
+export interface ILokalesResult {
+    val: string;
+    args: any[];
 }
 export interface ILokalesCache extends IMap<ILokalesItem | string> {
 }

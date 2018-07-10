@@ -1,4 +1,4 @@
-import { ILokalesOptions, ILokalesCache, LokalesOptionKeys } from './interfaces';
+import { ILokalesOptions, ILokalesCache, LokalesOptionKeys, ILokalesResult } from './interfaces';
 export * from './interfaces';
 export declare class Lokales {
     private _canExit;
@@ -77,11 +77,20 @@ export declare class Lokales {
      * @param values template literal args.
      */
     private templateLiteral(strings, values);
+    /**
+     * Template Literal allows for localizing __`some localized string ${value}`;
+     *
+     * @param strings array of template literal strings.
+     * @param values template literal args.
+     */
+    private templateLiteral(strings, values, noFormat);
     readonly t: {
         (val: TemplateStringsArray, ...args: any[]): string;
         (val: string, ...args: any[]): string;
     };
     readonly tn: (singular: string, plural: string, count?: number, ...args: any[]) => string;
+    readonly tx: (val: string | TemplateStringsArray, ...args: any[]) => ILokalesResult;
+    readonly tnx: (singular: string, plural: string, count?: number, ...args: any[]) => ILokalesResult;
     /**
      * Localize common method for localizing strings.
      *
@@ -90,7 +99,7 @@ export declare class Lokales {
      * @param count numeric count for pluralization.
      * @param args format args.
      */
-    protected localize(singular: string, plural?: string, count?: number, ...args: any[]): string;
+    protected localize(singular: string, plural: string, count: number, ...args: any[]): ILokalesResult;
     /**
      * A callback function before exit and after queue has been emptied.
      *
@@ -139,6 +148,13 @@ export declare class Lokales {
      */
     __(val: string, ...args: any[]): string;
     /**
+     * Localize non plural string unformated as object.
+     *
+     * @param val the value to localize.
+     * @param args format arguments.
+     */
+    __x(val: string | TemplateStringsArray, ...args: any[]): ILokalesResult;
+    /**
      * Localize plurals.
      *
      * @param singular the singular localized value.
@@ -147,4 +163,13 @@ export declare class Lokales {
      * @param args argument formatters.
      */
     __n(singular: string, plural: string, count?: number, ...args: any[]): string;
+    /**
+    * Localize plurals unformated as object.
+    *
+    * @param singular the singular localized value.
+    * @param plural the pluralized valued.
+    * @param count the count for the plural value.
+    * @param args argument formatters.
+    */
+    __nx(singular: string, plural: string, count?: number, ...args: any[]): ILokalesResult;
 }
