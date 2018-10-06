@@ -106,6 +106,7 @@ export declare class Lokales {
      * @param fn a callback function on queue empty and ready to exit.
      */
     onQueueEmpty(fn: Function): void;
+    flush(): void;
     /**
      * Set an option or extends current options.
      *

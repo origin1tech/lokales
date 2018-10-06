@@ -291,6 +291,10 @@ class Lokales {
     onQueueEmpty(fn) {
         this._onQueueEmpty = fn;
     }
+    flush() {
+        this.queue = [];
+        this._canExit = true;
+    }
     /**
      * Set an option or extends current options.
      *
